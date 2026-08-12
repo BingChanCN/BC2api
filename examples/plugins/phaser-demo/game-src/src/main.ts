@@ -1,3 +1,4 @@
+import './style.css'
 import Phaser from 'phaser'
 
 // 演示目标：验证 Phaser 构建产物在 sub2api 插件沙箱（/plugin-runtime/:id/ui/）内的行为。
