@@ -34,7 +34,7 @@ func (r *gameLedgerRepository) InsertIdempotency(ctx context.Context, scope, key
 	if err != nil {
 		return 0, false, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	if !rows.Next() {
 		return 0, false, nil
 	}
@@ -55,7 +55,7 @@ func (r *gameLedgerRepository) GetByIdempotencyKey(ctx context.Context, scope, k
 	if err != nil {
 		return "", "", "", err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	if !rows.Next() {
 		return "", "", "", sql.ErrNoRows
 	}
@@ -77,7 +77,7 @@ func (r *gameLedgerRepository) MarkSucceeded(ctx context.Context, id int64, resp
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	if !rows.Next() {
 		return errors.New("idempotency record not found")
 	}
@@ -95,7 +95,7 @@ func (r *gameLedgerRepository) MarkFailed(ctx context.Context, id int64, errorRe
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	if !rows.Next() {
 		return errors.New("idempotency record not found")
 	}

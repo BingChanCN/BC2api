@@ -70,7 +70,7 @@ type RegistryPluginStatus struct {
 func NewRuntime(registry *Registry) *Runtime {
 	cfg := registry.Config()
 	dialer := &net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport := http.DefaultTransport.(*http.Transport).Clone() //nolint:errcheck // stdlib DefaultTransport is always *http.Transport
 	transport.Proxy = nil
 	transport.DialContext = dialer.DialContext
 	transport.MaxIdleConns = 32
@@ -197,7 +197,7 @@ func (r *Runtime) Invoke(c *gin.Context) {
 		response.Error(c, http.StatusBadGateway, "Plugin service is unavailable")
 		return
 	}
-	defer upstreamResponse.Body.Close()
+	defer func() { _ = upstreamResponse.Body.Close() }()
 
 	if upstreamResponse.StatusCode >= 300 && upstreamResponse.StatusCode < 400 {
 		response.Error(c, http.StatusBadGateway, "Plugin redirects are not supported")
@@ -273,7 +273,7 @@ func (r *Runtime) serveStaticUI(c *gin.Context, entry *pluginEntry, relativePath
 		c.Status(http.StatusNotFound)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	info, err := file.Stat()
 	if err != nil || !info.Mode().IsRegular() {
 		c.Status(http.StatusNotFound)
@@ -306,7 +306,7 @@ func (r *Runtime) serveProxyUI(c *gin.Context, entry *pluginEntry, relativePath 
 		c.String(http.StatusBadGateway, "Plugin UI is unavailable")
 		return
 	}
-	defer upstreamResponse.Body.Close()
+	defer func() { _ = upstreamResponse.Body.Close() }()
 	if upstreamResponse.StatusCode >= 300 && upstreamResponse.StatusCode < 400 {
 		c.String(http.StatusBadGateway, "Plugin UI redirects are not supported")
 		return
