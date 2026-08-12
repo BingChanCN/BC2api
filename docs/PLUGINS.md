@@ -172,7 +172,7 @@ services:
 侧车是独立进程，游戏自己的数据（局历史、排行榜、任务进度……）**由侧车自己持久化**，主站不代持也不审计。约定：
 
 - **存哪**：侧车容器内的 `DATA_DIR`（默认 `./data`，通过 bind mount 落到插件目录旁的宿主目录），重建容器/换镜像数据不丢
-- **怎么存**：单文件 JSON 原子写（参照实现：examples/plugins/coinflip 侧车的 `store.go` FileStore）或 SQLite/bbolt，按游戏数据量自选；结构由各游戏自己设计
+- **怎么存**：单文件 JSON 原子写（参照实现：examples/plugins/coinflip 侧车的 `store.go` FileStore）或 SQLite（参照实现：同仓库 `store_sqlite.go`，modernc.org/sqlite 纯 Go 驱动，WAL + 迁移模式，带测试锁定契约），按游戏数据量/查询复杂度自选；结构由各游戏自己设计
 - **不存什么**：余额缓存不落盘——余额权威在主站，重启后经 `/me` 实时查询（`POST /api/v1/internal/game/query`）恢复
 - **边界**：侧车数据删了游戏从头开始，主站账本/流水不受影响；余额与审计仍以主站为准
 - **备份**：随插件目录（宿主机普通目录）一起走
