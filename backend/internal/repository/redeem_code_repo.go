@@ -8,6 +8,7 @@ import (
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	"github.com/Wei-Shaw/sub2api/ent/user"
+	"github.com/Wei-Shaw/sub2api/internal/domain"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
@@ -107,6 +108,11 @@ func (r *redeemCodeRepository) ListWithFilters(ctx context.Context, params pagin
 
 	if codeType != "" {
 		q = q.Where(redeemcode.TypeEQ(codeType))
+	} else {
+		// 兑换码管理页只列真正的兑换码：redeem_codes 同时是余额流水表，
+		// type=game 的行是游戏账本写入的动账流水（code 为 game-xxx 哈希，非可兑换码），
+		// 默认排除；游戏流水经用户余额明细 / 管理后台余额历史查看。
+		q = q.Where(redeemcode.TypeNEQ(domain.AdjustmentTypeGame))
 	}
 	if status != "" {
 		now := time.Now()
