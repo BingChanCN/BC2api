@@ -98,7 +98,7 @@ L4  核心改动（慎用）
 |------|------|
 | `backend/internal/plugin/manifest.go` | 清单 schema、校验、公开 DTO |
 | `backend/internal/plugin/registry.go` | 目录扫描、热刷新、角色过滤、诊断 |
-| `backend/internal/plugin/runtime.go` | UI 静态/代理、API invoke、响应封装 |
+| `backend/internal/plugin/runtime.go` | UI 静态/代理、API invoke、响应封装；CSP `connect-src 'self'`（Phaser Loader 同源 XHR） |
 | `backend/internal/plugin/runtime_test.go` | 热刷新 / 静态隔离 / 凭证替换测试 |
 | `backend/internal/server/routes/plugins.go` | 路由注册 |
 | `frontend/src/api/plugins.ts` | 列表 / invoke / 管理诊断 API |
@@ -106,12 +106,13 @@ L4  核心改动（慎用）
 | `frontend/src/stores/__tests__/plugins.spec.ts` | store 测试 |
 | `frontend/src/features/plugins/bridge.ts` | iframe `postMessage` 协议解析 |
 | `frontend/src/features/plugins/__tests__/bridge.spec.ts` | 桥协议测试 |
-| `frontend/src/views/user/PluginView.vue` | 用户插件沙箱页 `/plugins/:id` |
+| `frontend/src/views/user/PluginView.vue` | 用户插件沙箱页 `/plugins/:id`（iframe `allow-fullscreen` + `allow="fullscreen"`） |
 | `frontend/src/views/admin/PluginsView.vue` | 管理诊断页 `/admin/plugins` |
 | `frontend/src/i18n/locales/{zh,en}/admin/plugins.ts` | 管理文案 |
 | `docs/PLUGINS.md` | 插件契约 |
 | `docs/FORK_DEVELOPMENT.md` | 本文 |
 | `examples/plugins/reaction-grid/**` | 纯静态示例小游戏 |
+| `examples/plugins/phaser-demo/**` | Phaser 4 静态游戏示例（`public/` 产物 + `game-src/` 源码） |
 | `examples/plugins/coinflip/**` | 游戏账本示例（proxy 侧车 + stake/payout/refund） |
 | `examples/plugins/README.md` | 示例说明 |
 | `backend/internal/service/game_ledger.go` | 游戏账本：限额/幂等/动账/`type=game` 流水同事务 |

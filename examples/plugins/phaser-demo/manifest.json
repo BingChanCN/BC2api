@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "phaser-demo",
+  "name": "Phaser Demo",
+  "version": "1.0.0",
+  "description": "Phaser 4 静态游戏示例：验证游戏引擎产物在插件沙箱内运行与资源加载。",
+  "enabled": true,
+  "visibility": "user",
+  "sort_order": 110,
+  "runtime": {
+    "type": "static",
+    "entry": "public/index.html",
+    "spa": false
+  }
+}

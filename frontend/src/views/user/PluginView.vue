@@ -30,7 +30,8 @@
         :src="iframeSource"
         :title="plugin.name"
         class="min-h-0 flex-1 rounded-md border border-gray-200 bg-white dark:border-dark-700"
-        sandbox="allow-scripts"
+        sandbox="allow-scripts allow-fullscreen"
+        allow="fullscreen"
       ></iframe>
     </section>
   </AppLayout>

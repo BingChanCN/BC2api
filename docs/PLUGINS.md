@@ -194,10 +194,24 @@ plugins:
 仓库内示例：
 
 ```text
-examples/plugins/reaction-grid/
+examples/plugins/reaction-grid/   # 纯静态小游戏（无侧车）
+examples/plugins/phaser-demo/     # Phaser 4 静态游戏（验证游戏引擎产物接入）
+examples/plugins/coinflip/        # proxy 侧车 + 游戏账本（stake/payout 完整流）
 ```
 
-复制到运行时目录后，用户侧栏会出现「反应网格」，打开即可玩，无需侧车、无需重建主容器。
+复制到运行时目录后，用户侧栏会出现对应菜单，无需重建主容器。
+
+## Phaser 游戏接入
+
+Phaser（2D HTML5 游戏引擎）的构建产物可直接作为 `static` 插件。要点：
+
+1. **Vite base './'**：构建产物所有资源引用必须相对路径，否则 `/assets/...` 会 404（插件 UI 挂在 `/plugin-runtime/:id/ui/` 子路径）。PhaserEditor vite-ts 模板已内置。
+2. **Loader 资源**：`this.load.image/audio/json/...` 走 XHR，依赖插件 UI CSP 的 `connect-src 'self'`（v1 已放宽，仅同源、匿名请求，不携带主站 Cookie）。
+3. **沙箱限制**：iframe 无 `allow-same-origin` → 无 localStorage、无主站 JWT。存档与登录态数据经父页面 postMessage 桥或侧车。
+4. **全屏**：iframe 已带 `allow="fullscreen"`。
+5. **账本游戏**：要下注/发奖时用侧车模式，见下方「游戏账本」。
+
+接入流：本地 `npm run build` → `dist/*` 拷入插件 `public/` → 挂到运行时目录。示例 `examples/plugins/phaser-demo/`（含 `game-src/` 源码与重建脚本说明）。
 
 ## 游戏账本（余额变动）
 

@@ -109,7 +109,7 @@ func TestServeStaticUIOnlyExposesPublishedFiles(t *testing.T) {
 	if index.Code != http.StatusOK || !strings.Contains(index.Body.String(), "Hello") {
 		t.Fatalf("index response = %d %q", index.Code, index.Body.String())
 	}
-	if got := index.Header().Get("Content-Security-Policy"); !strings.Contains(got, "connect-src 'none'") || !strings.Contains(got, "sandbox allow-scripts") {
+	if got := index.Header().Get("Content-Security-Policy"); !strings.Contains(got, "connect-src 'self'") || !strings.Contains(got, "sandbox allow-scripts") {
 		t.Fatalf("plugin CSP = %q", got)
 	}
 	if got := index.Header().Get("X-Frame-Options"); got != "SAMEORIGIN" {

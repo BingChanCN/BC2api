@@ -26,7 +26,10 @@ import (
 
 const (
 	pluginProtocolVersion = "1"
-	pluginUIContentPolicy = "sandbox allow-scripts; default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'none'; frame-src 'none'; child-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
+	// connect-src 'self'（而非 'none'）: 允许 iframe 内 fetch/XHR 加载同源静态资源（Phaser 等游戏引擎的 Loader 依赖它）。
+	// 安全性不受影响: sandbox 无 allow-same-origin，iframe 内请求是匿名请求（不携带主站 Cookie/JWT），
+	// 只能访问插件自身的 public/** 与公开接口；登录态 API 仍需经父页面受控桥。
+	pluginUIContentPolicy = "sandbox allow-scripts; default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; frame-src 'none'; child-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
 )
 
 type Runtime struct {
