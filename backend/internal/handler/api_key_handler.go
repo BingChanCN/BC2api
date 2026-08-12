@@ -356,3 +356,50 @@ func (h *APIKeyHandler) GetUserGroupRates(c *gin.Context) {
 
 	response.Success(c, rates)
 }
+
+// GetUserGroupRateCeilings 获取当前用户自设的分组倍率上限
+// GET /api/v1/groups/rate-ceilings
+func (h *APIKeyHandler) GetUserGroupRateCeilings(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	ceilings, err := h.apiKeyService.GetUserGroupRateCeilings(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, ceilings)
+}
+
+type setUserGroupRateCeilingRequest struct {
+	// RateCeiling 为 null/省略时表示清除上限。
+	RateCeiling *float64 `json:"rate_ceiling"`
+}
+
+// SetUserGroupRateCeiling 设置或清除当前用户在某分组的倍率上限
+// PUT /api/v1/groups/:id/rate-ceiling
+func (h *APIKeyHandler) SetUserGroupRateCeiling(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	groupID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || groupID <= 0 {
+		response.BadRequest(c, "Invalid group id")
+		return
+	}
+	var req setUserGroupRateCeilingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request body")
+		return
+	}
+	if err := h.apiKeyService.SetUserGroupRateCeiling(c.Request.Context(), subject.UserID, groupID, req.RateCeiling); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"group_id": groupID, "rate_ceiling": req.RateCeiling})
+}

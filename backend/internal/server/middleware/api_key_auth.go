@@ -9,6 +9,7 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
+	pkgerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ip"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
@@ -262,6 +263,22 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 				// 非订阅模式 或 订阅模式但 subscriptionService 未注入：回退到余额检查
 				if apiKeyBalanceBelowAuthThreshold(apiKey.User.Balance, cfg) {
 					AbortWithError(c, 403, "INSUFFICIENT_BALANCE", "Insufficient account balance")
+					return
+				}
+			}
+
+			// 用户自设渠道倍率上限：与计费 base_rate 同源比较，超限直接拒绝（不进上游）。
+			if apiKey.Group != nil && apiKey.User != nil {
+				if ceilingErr := apiKeyService.EnforceRateMultiplierCeiling(c.Request.Context(), apiKey.User.ID, apiKey.Group); ceilingErr != nil {
+					code := pkgerrors.Reason(ceilingErr)
+					if code == "" {
+						code = "RATE_MULTIPLIER_CEILING_EXCEEDED"
+					}
+					msg := pkgerrors.Message(ceilingErr)
+					if msg == "" {
+						msg = ceilingErr.Error()
+					}
+					AbortWithError(c, 403, code, msg)
 					return
 				}
 			}

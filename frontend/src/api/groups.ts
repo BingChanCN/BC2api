@@ -27,9 +27,32 @@ export async function getUserGroupRates(): Promise<Record<number, number>> {
   return data || {}
 }
 
+/**
+ * Get current user's self-set rate ceilings per group/channel.
+ */
+export async function getUserGroupRateCeilings(): Promise<Record<number, number>> {
+  const { data } = await apiClient.get<Record<number, number> | null>('/groups/rate-ceilings')
+  return data || {}
+}
+
+/**
+ * Set or clear the rate ceiling for one available group/channel.
+ * Pass null to clear (no limit).
+ */
+export async function setUserGroupRateCeiling(
+  groupId: number,
+  rateCeiling: number | null
+): Promise<void> {
+  await apiClient.put(`/groups/${groupId}/rate-ceiling`, {
+    rate_ceiling: rateCeiling,
+  })
+}
+
 export const userGroupsAPI = {
   getAvailable,
-  getUserGroupRates
+  getUserGroupRates,
+  getUserGroupRateCeilings,
+  setUserGroupRateCeiling,
 }
 
 export default userGroupsAPI

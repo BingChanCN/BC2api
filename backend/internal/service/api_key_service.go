@@ -288,6 +288,7 @@ type APIKeyService struct {
 	groupRepo                 GroupRepository
 	userSubRepo               UserSubscriptionRepository
 	userGroupRateRepo         UserGroupRateRepository
+	userGroupRateCeilingRepo  UserGroupRateCeilingRepository
 	cache                     APIKeyCache
 	rateLimitCacheInvalid     RateLimitCacheInvalidator // optional: invalidate Redis rate limit cache
 	concurrencyService        *ConcurrencyService
@@ -349,6 +350,7 @@ func NewAPIKeyService(
 		cache:             cache,
 		cfg:               cfg,
 	}
+
 	svc.initAuthCache(cfg)
 	lookupConcurrency := defaultAuthLookupConcurrency
 	if cfg != nil && cfg.APIKeyAuth.LookupConcurrency > 0 {
@@ -363,6 +365,14 @@ func NewAPIKeyService(
 // Called after construction (e.g. in wire) to avoid circular dependencies.
 func (s *APIKeyService) SetRateLimitCacheInvalidator(inv RateLimitCacheInvalidator) {
 	s.rateLimitCacheInvalid = inv
+}
+
+// SetUserGroupRateCeilingRepo sets the optional user rate-ceiling repository.
+func (s *APIKeyService) SetUserGroupRateCeilingRepo(repo UserGroupRateCeilingRepository) {
+	if s == nil {
+		return
+	}
+	s.userGroupRateCeilingRepo = repo
 }
 
 func (s *APIKeyService) SetConcurrencyService(concurrencyService *ConcurrencyService) {
@@ -1098,6 +1108,70 @@ func (s *APIKeyService) GetUserGroupRates(ctx context.Context, userID int64) (ma
 		return nil, fmt.Errorf("get user group rates: %w", err)
 	}
 	return rates, nil
+}
+
+// GetUserGroupRateCeilings 获取用户自设的分组倍率上限。
+func (s *APIKeyService) GetUserGroupRateCeilings(ctx context.Context, userID int64) (map[int64]float64, error) {
+	if s == nil || s.userGroupRateCeilingRepo == nil {
+		return map[int64]float64{}, nil
+	}
+	ceilings, err := s.userGroupRateCeilingRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user group rate ceilings: %w", err)
+	}
+	if ceilings == nil {
+		return map[int64]float64{}, nil
+	}
+	return ceilings, nil
+}
+
+// SetUserGroupRateCeiling 设置或清除用户在某分组的倍率上限。
+// ceiling == nil 表示清除上限（不限制）。
+func (s *APIKeyService) SetUserGroupRateCeiling(ctx context.Context, userID, groupID int64, ceiling *float64) error {
+	if s == nil || s.userGroupRateCeilingRepo == nil {
+		return fmt.Errorf("rate ceiling storage is not configured")
+	}
+	if userID <= 0 || groupID <= 0 {
+		return fmt.Errorf("invalid user or group")
+	}
+
+	// 仅允许对当前用户可绑定/可见的分组设置上限。
+	available, err := s.GetAvailableGroups(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("list available groups: %w", err)
+	}
+	allowed := false
+	for i := range available {
+		if available[i].ID == groupID {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		return ErrInsufficientPerms
+	}
+
+	if ceiling == nil {
+		if err := s.userGroupRateCeilingRepo.Delete(ctx, userID, groupID); err != nil {
+			return fmt.Errorf("clear rate ceiling: %w", err)
+		}
+		return nil
+	}
+	if *ceiling <= 0 {
+		return infraerrors.BadRequest("INVALID_RATE_CEILING", "rate ceiling must be greater than 0")
+	}
+	if err := s.userGroupRateCeilingRepo.Upsert(ctx, userID, groupID, *ceiling); err != nil {
+		return fmt.Errorf("set rate ceiling: %w", err)
+	}
+	return nil
+}
+
+// EnforceRateMultiplierCeiling 在 API Key 鉴权通过后、上游前检查用户上限。
+func (s *APIKeyService) EnforceRateMultiplierCeiling(ctx context.Context, userID int64, group *Group) error {
+	if s == nil {
+		return nil
+	}
+	return CheckRateMultiplierCeiling(ctx, s.userGroupRateCeilingRepo, s.userGroupRateRepo, userID, group, timezone.Now())
 }
 
 // CheckAPIKeyQuotaAndExpiry checks if the API key is valid for use (not expired, quota not exhausted)
