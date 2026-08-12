@@ -314,9 +314,9 @@ Authorization: Bearer <该插件的 .api-secret 内容>
 { "game_id": "coinflip", "user_id": 123 }
 ```
 
-响应：`{ "code": 0, "message": "success", "data": { "user_id": 123, "balance": 45.5 } }`
+响应：`{ "code": 0, "message": "success", "data": { "user_id": 123, "balance": 45.5, "username": "小明" } }`
 
-- 只读查询用户当前余额（权威值来自 users 表），用于侧车 `/me` 等展示端点
+- 只读查询用户当前余额与昵称（权威值来自 users 表），用于侧车 `/me` 等展示端点；`username` 用于排行榜/游戏内昵称展示
 - 鉴权与动账一致：Bearer 必须等于该 game 的 `.api-secret`；插件停用即拒绝
 - 用户不存在返回 404（`USER_NOT_FOUND`）
 - **信任边界**：持 secret 的侧车可查询任意 `user_id` 的余额。侧车与动账同级信任（管理员部署的协作组件），密钥泄需轮换 `.api-secret`

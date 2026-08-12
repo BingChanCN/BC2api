@@ -23,6 +23,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	xdraw "golang.org/x/image/draw"
 	"golang.org/x/sync/singleflight"
@@ -37,6 +39,8 @@ var (
 	ErrAvatarInvalid            = infraerrors.BadRequest("AVATAR_INVALID", "avatar must be a valid image data URL or http(s) URL")
 	ErrAvatarTooLarge           = infraerrors.BadRequest("AVATAR_TOO_LARGE", "avatar image must be 100KB or smaller")
 	ErrAvatarNotImage           = infraerrors.BadRequest("AVATAR_NOT_IMAGE", "avatar content must be an image")
+	ErrUsernameInvalid          = infraerrors.BadRequest("USERNAME_INVALID", "username contains forbidden characters")
+	ErrUsernameTooLong          = infraerrors.BadRequest("USERNAME_TOO_LONG", "username must not exceed 30 characters")
 	ErrIdentityProviderInvalid  = infraerrors.BadRequest("IDENTITY_PROVIDER_INVALID", "identity provider is invalid")
 	ErrIdentityRedirectInvalid  = infraerrors.BadRequest("IDENTITY_REDIRECT_INVALID", "identity redirect path is invalid")
 	ErrIdentityUnbindLastMethod = infraerrors.Conflict(
@@ -519,7 +523,11 @@ func (s *UserService) updateProfile(ctx context.Context, userID int64, req Updat
 	}
 
 	if req.Username != nil {
-		user.Username = *req.Username
+		name := strings.TrimSpace(*req.Username)
+		if err := validateUsername(name); err != nil {
+			return nil, oldConcurrency, err
+		}
+		user.Username = name
 		fields.Username = true
 	}
 
@@ -1458,4 +1466,31 @@ const notifyVerifyEmailTemplate = `<!DOCTYPE html>
 // buildNotifyVerifyEmailBody builds the HTML email body for notify email verification.
 func buildNotifyVerifyEmailBody(code, siteName string) string {
 	return fmt.Sprintf(notifyVerifyEmailTemplate, siteName, code)
+}
+
+// validateUsername 昵称基本安全限制：Trim 后 1-30 个 Unicode 字符，
+// 拒绝控制字符与零宽/方向性伪装字符（防仿冒混淆）。
+func validateUsername(name string) error {
+	if name == "" {
+		return infraerrors.BadRequest("USERNAME_EMPTY", "username must not be empty")
+	}
+	if utf8.RuneCountInString(name) > 30 {
+		return ErrUsernameTooLong
+	}
+	for _, r := range name {
+		if unicode.IsControl(r) {
+			return ErrUsernameInvalid
+		}
+		if isZeroWidthOrBidiRune(r) {
+			return ErrUsernameInvalid
+		}
+	}
+	return nil
+}
+
+// isZeroWidthOrBidiRune 判定零宽字符与方向控制字符：
+// ZWSP/ZWNJ/ZWJ/word joiner/BOM + Unicode 双向文本控制段。
+func isZeroWidthOrBidiRune(r rune) bool {
+	return r == '\u200b' || r == '\u200c' || r == '\u200d' || r == '\u2060' || r == '\ufeff' ||
+		(r >= '\u200e' && r <= '\u200f') || (r >= '\u202a' && r <= '\u202e')
 }

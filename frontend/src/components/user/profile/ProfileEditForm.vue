@@ -24,6 +24,7 @@
             v-model="username"
             type="text"
             class="input"
+            maxlength="30"
             :placeholder="t('profile.enterUsername')"
           />
         </div>

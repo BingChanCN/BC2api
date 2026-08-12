@@ -62,11 +62,12 @@ type GameBalanceQuery struct {
 }
 
 // GameBalanceResult is the outcome of a balance query.
-// Data is an object so future fields (nickname, avatar, ...) can be added
-// without breaking the sidecar contract.
+// Data is an object so future fields can be added without breaking
+// the sidecar contract.
 type GameBalanceResult struct {
-	UserID  int64   `json:"user_id"`
-	Balance float64 `json:"balance"`
+	UserID   int64   `json:"user_id"`
+	Balance  float64 `json:"balance"`
+	Username string  `json:"username"`
 }
 
 // GameLedgerRepository persists idempotency bookkeeping for game transactions.
@@ -120,7 +121,7 @@ func (s *GameLedgerService) QueryBalance(ctx context.Context, q GameBalanceQuery
 	if err != nil {
 		return nil, err
 	}
-	return &GameBalanceResult{UserID: q.UserID, Balance: user.Balance}, nil
+	return &GameBalanceResult{UserID: q.UserID, Balance: user.Balance, Username: user.Username}, nil
 }
 
 // Validate checks the request shape and the plugin's declared caps.
