@@ -46,5 +46,6 @@ func RegisterPluginRoutes(
 	// .api-secret. Never authenticated by user JWT or admin key.
 	if gameLedger != nil {
 		v1.POST("/internal/game/transactions", gameLedger.RecordTransaction)
+		v1.POST("/internal/game/query", gameLedger.QueryBalance)
 	}
 }

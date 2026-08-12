@@ -240,6 +240,8 @@ Phaser（2D HTML5 游戏引擎）的构建产物可直接作为 `static` 插件�
 
 ### 内部 API
 
+#### 动账：POST /api/v1/internal/game/transactions
+
 ```http
 POST /api/v1/internal/game/transactions
 Authorization: Bearer <该插件的 .api-secret 内容>
@@ -288,6 +290,25 @@ Authorization: Bearer <该插件的 .api-secret 内容>
 | 403 | `GAME_INSUFFICIENT_BALANCE` | 用户余额不足 |
 | 409 | `GAME_ROUND_IN_PROGRESS` | 同轮交易处理中（请稍后重试） |
 | 409 | `GAME_ROUND_SETTLED` | 同 `(round_id, kind)` 已结算 |
+
+#### 查询：POST /api/v1/internal/game/query
+
+```http
+POST /api/v1/internal/game/query
+Authorization: Bearer <该插件的 .api-secret 内容>
+```
+
+```json
+{ "game_id": "coinflip", "user_id": 123 }
+```
+
+响应：`{ "code": 0, "message": "success", "data": { "user_id": 123, "balance": 45.5 } }`
+
+- 只读查询用户当前余额（权威值来自 users 表），用于侧车 `/me` 等展示端点
+- 鉴权与动账一致：Bearer 必须等于该 game 的 `.api-secret`；插件停用即拒绝
+- 用户不存在返回 404（`USER_NOT_FOUND`）
+- **信任边界**：持 secret 的侧车可查询任意 `user_id` 的余额。侧车与动账同级信任（管理员部署的协作组件），密钥泄需轮换 `.api-secret`
+- `data` 为对象，将来扩展字段（昵称/头像等）不破坏契约
 
 ### 审计
 

@@ -75,6 +75,15 @@ func TestGameLedgerValidate_CapsAndKinds(t *testing.T) {
 	require.NoError(t, svc.Validate(good, 100, 100))
 }
 
+func TestGameLedgerQueryBalance_InvalidUserRejected(t *testing.T) {
+	svc, _, check := newGameLedgerFixture(t)
+
+	_, err := svc.QueryBalance(context.Background(), service.GameBalanceQuery{GameID: "g", UserID: 0})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "user_id must be positive")
+	check()
+}
+
 func TestGameLedgerRecordTransaction_StakeSucceeds(t *testing.T) {
 	svc, mock, check := newGameLedgerFixture(t)
 

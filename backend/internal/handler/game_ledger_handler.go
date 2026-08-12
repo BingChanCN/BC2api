@@ -37,6 +37,11 @@ type gameTransactionBody struct {
 	Note    string  `json:"note"`
 }
 
+type gameQueryBody struct {
+	GameID string `json:"game_id" binding:"required"`
+	UserID int64  `json:"user_id" binding:"required"`
+}
+
 // RecordTransaction handles POST /api/v1/internal/game/transactions.
 func (h *GameLedgerHandler) RecordTransaction(c *gin.Context) {
 	if h.service == nil || h.registry == nil {
@@ -74,6 +79,40 @@ func (h *GameLedgerHandler) RecordTransaction(c *gin.Context) {
 	}
 
 	result, err := h.service.RecordTransaction(c.Request.Context(), req)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
+}
+
+// QueryBalance handles POST /api/v1/internal/game/query.
+// Same trust model as RecordTransaction: the bearer must be the calling
+// game's .api-secret, enforced by the registry's GamePolicy.
+func (h *GameLedgerHandler) QueryBalance(c *gin.Context) {
+	if h.service == nil || h.registry == nil {
+		response.Error(c, http.StatusServiceUnavailable, "game ledger is not available")
+		return
+	}
+
+	var body gameQueryBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	body.GameID = strings.TrimSpace(body.GameID)
+
+	bearer := c.GetHeader("Authorization")
+	policy, ok := h.registry.GamePolicy(body.GameID, bearer)
+	if !ok {
+		response.Error(c, http.StatusUnauthorized, "invalid or disabled game credential")
+		return
+	}
+
+	result, err := h.service.QueryBalance(c.Request.Context(), service.GameBalanceQuery{
+		GameID: policy.ID,
+		UserID: body.UserID,
+	})
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

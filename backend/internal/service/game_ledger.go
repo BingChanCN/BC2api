@@ -55,6 +55,20 @@ type GameTransactionResult struct {
 	BalanceAfter float64 `json:"balance_after"`
 }
 
+// GameBalanceQuery is a read-only balance lookup issued by a game sidecar.
+type GameBalanceQuery struct {
+	GameID string
+	UserID int64
+}
+
+// GameBalanceResult is the outcome of a balance query.
+// Data is an object so future fields (nickname, avatar, ...) can be added
+// without breaking the sidecar contract.
+type GameBalanceResult struct {
+	UserID  int64   `json:"user_id"`
+	Balance float64 `json:"balance"`
+}
+
 // GameLedgerRepository persists idempotency bookkeeping for game transactions.
 // All methods must work inside the caller's transaction context.
 type GameLedgerRepository interface {
@@ -93,6 +107,20 @@ func NewGameLedgerService(
 		authCacheInvalidator: authCacheInvalidator,
 		billingCacheService:  billingCacheService,
 	}
+}
+
+// QueryBalance returns the user's current balance without changing it.
+// Sidecars call this for /me endpoints; the balance is read from the
+// authoritative users table, not from any sidecar-side cache.
+func (s *GameLedgerService) QueryBalance(ctx context.Context, q GameBalanceQuery) (*GameBalanceResult, error) {
+	if q.UserID <= 0 {
+		return nil, infraerrors.BadRequest("GAME_INVALID_USER", "user_id must be positive")
+	}
+	user, err := s.userRepo.GetByID(ctx, q.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return &GameBalanceResult{UserID: q.UserID, Balance: user.Balance}, nil
 }
 
 // Validate checks the request shape and the plugin's declared caps.
