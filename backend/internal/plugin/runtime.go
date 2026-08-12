@@ -29,6 +29,7 @@ const (
 	// connect-src 'self'（而非 'none'）: 允许 iframe 内 fetch/XHR 加载同源静态资源（Phaser 等游戏引擎的 Loader 依赖它）。
 	// 安全性不受影响: sandbox 无 allow-same-origin，iframe 内请求是匿名请求（不携带主站 Cookie/JWT），
 	// 只能访问插件自身的 public/** 与公开接口；登录态 API 仍需经父页面受控桥。
+	// 注: 全屏能力由 iframe 的 allow="fullscreen"（Permissions Policy）控制，不是 sandbox token。
 	pluginUIContentPolicy = "sandbox allow-scripts; default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; frame-src 'none'; child-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
 )
 
@@ -436,6 +437,10 @@ func setPluginUIHeaders(header http.Header) {
 	header.Set("X-Content-Type-Options", "nosniff")
 	header.Set("Referrer-Policy", "no-referrer")
 	header.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()")
+	// 沙箱 iframe 是 opaque origin（origin: null），而 Vite 产物的 module script/link 带 crossorigin，
+	// 无 ACAO 会被浏览器 CORS 拦截。插件 UI 是公开静态壳（无秘密），ACAO * 不影响安全边界：
+	// 登录态 API 仍不在这个资源面（需经认证网关）。
+	header.Set("Access-Control-Allow-Origin", "*")
 }
 
 func readLimited(reader io.Reader, limit int64) ([]byte, error) {

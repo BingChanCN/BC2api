@@ -112,6 +112,9 @@ func TestServeStaticUIOnlyExposesPublishedFiles(t *testing.T) {
 	if got := index.Header().Get("Content-Security-Policy"); !strings.Contains(got, "connect-src 'self'") || !strings.Contains(got, "sandbox allow-scripts") {
 		t.Fatalf("plugin CSP = %q", got)
 	}
+	if got := index.Header().Get("Access-Control-Allow-Origin"); got != "*" {
+		t.Fatalf("plugin ACAO = %q", got)
+	}
 	if got := index.Header().Get("X-Frame-Options"); got != "SAMEORIGIN" {
 		t.Fatalf("X-Frame-Options = %q", got)
 	}
