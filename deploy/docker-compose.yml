@@ -16,7 +16,7 @@ services:
   # Sub2API Application
   # ===========================================================================
   sub2api:
-    image: weishaw/sub2api:latest
+    image: ${SUB2API_IMAGE:-weishaw/sub2api:latest}
     container_name: sub2api
     restart: unless-stopped
     security_opt:
@@ -32,7 +32,7 @@ services:
       # Also holds hot-loaded plugins under /app/data/plugins
       - sub2api_data:/app/data
       # Optional: bind-mount plugins for live edits without copying into the volume
-      # - ./plugins:/app/data/plugins
+      - ./plugins:/app/data/plugins
       # Optional: Mount custom config.yaml (uncomment and create the file first)
       # Copy config.example.yaml to config.yaml, modify it, then uncomment:
       # - ./config.yaml:/app/data/config.yaml
