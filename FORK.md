@@ -7,12 +7,13 @@
 | 名称 | 用途 |
 |------|------|
 | `upstream` | 官方上游 `https://github.com/Wei-Shaw/sub2api.git`（只读同步） |
-| `origin` | 自有 fork 远程（创建 GitHub 仓库后绑定） |
+| `origin` | 自有 fork：`git@github.com:BingChanCN/BC2api.git` |
 
 ```bash
-# 绑定自有远程（示例）
-git remote add origin https://github.com/<you>/<your-sub2api>.git
+# 首次推送二开主线
 git push -u origin fork/main
+# 若需默认分支也叫 main：推送后在 GitHub 设 default branch，或
+# git push origin fork/main:main
 ```
 
 ## 分支策略
