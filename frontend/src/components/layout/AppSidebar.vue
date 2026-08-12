@@ -191,7 +191,7 @@
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore } from '@/stores'
+import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore, usePluginStore } from '@/stores'
 import VersionBadge from '@/components/common/VersionBadge.vue'
 import { sanitizeSvg } from '@/utils/sanitize'
 import { sanitizeUrl } from '@/utils/url'
@@ -242,6 +242,7 @@ const appStore = useAppStore()
 const authStore = useAuthStore()
 const onboardingStore = useOnboardingStore()
 const adminSettingsStore = useAdminSettingsStore()
+const pluginStore = usePluginStore()
 const { canUseBatchImage, refreshBatchImageAccess } = useBatchImageAccess()
 
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed)
@@ -711,6 +712,13 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
     { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true },
     { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate },
     { path: '/profile', label: t('nav.profile'), icon: UserIcon },
+    ...pluginStore.plugins
+      .filter((plugin) => plugin.visibility === 'user')
+      .map((plugin): NavItem => ({
+        path: `/plugins/${plugin.id}`,
+        label: plugin.name,
+        icon: FolderIcon,
+      })),
     ...customMenuItemsForUser.value.map((item): NavItem => ({
       path: `/custom/${item.id}`,
       label: item.label,
@@ -815,11 +823,20 @@ const adminNavItems = computed((): NavItem[] => {
   ]
 
   const visible = applyFeatureFlags(baseItems)
+  const adminPluginItems = pluginStore.plugins
+    .filter((plugin) => plugin.visibility === 'admin')
+    .map((plugin): NavItem => ({
+      path: `/plugins/${plugin.id}`,
+      label: plugin.name,
+      icon: FolderIcon,
+    }))
 
   // 简单模式下，在系统设置前插入 API密钥
   if (authStore.isSimpleMode) {
     const filtered = visible.filter(item => !item.hideInSimpleMode)
     filtered.push({ path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon })
+    filtered.push({ path: '/admin/plugins', label: t('nav.plugins'), icon: FolderIcon })
+    filtered.push(...adminPluginItems)
     filtered.push({ path: '/admin/settings', label: t('nav.settings'), icon: CogIcon })
     for (const cm of customMenuItemsForAdmin.value) {
       filtered.push({ path: `/custom/${cm.id}`, label: cm.label, icon: null, iconSvg: cm.icon_svg })
@@ -827,6 +844,8 @@ const adminNavItems = computed((): NavItem[] => {
     return filtered
   }
 
+  visible.push({ path: '/admin/plugins', label: t('nav.plugins'), icon: FolderIcon })
+  visible.push(...adminPluginItems)
   visible.push({ path: '/admin/settings', label: t('nav.settings'), icon: CogIcon })
   for (const cm of customMenuItemsForAdmin.value) {
     visible.push({ path: `/custom/${cm.id}`, label: cm.label, icon: null, iconSvg: cm.icon_svg })

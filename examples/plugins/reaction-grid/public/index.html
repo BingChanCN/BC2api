@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>反应网格</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <h1>反应网格</h1>
+        <p>点击高亮格子，记录最快反应。纯静态示例，不调用主站 API。</p>
+      </header>
+
+      <section class="stats">
+        <div>
+          <span class="label">得分</span>
+          <strong id="score">0</strong>
+        </div>
+        <div>
+          <span class="label">最佳</span>
+          <strong id="best">—</strong>
+        </div>
+        <div>
+          <span class="label">状态</span>
+          <strong id="status">准备</strong>
+        </div>
+      </section>
+
+      <div id="board" class="board" aria-label="反应网格"></div>
+
+      <footer>
+        <button id="start" type="button">开始</button>
+        <button id="reset" type="button" class="ghost">重置</button>
+      </footer>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

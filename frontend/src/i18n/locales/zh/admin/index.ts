@@ -5,6 +5,7 @@ import resources from './resources'
 import ops from './ops'
 import settings from './settings'
 import audit from './audit'
+import plugins from './plugins'
 import promptAudit from './promptAudit'
 
 export default {
@@ -15,5 +16,6 @@ export default {
   ...ops,
   ...settings,
   ...audit,
+  ...plugins,
   ...promptAudit,
 }

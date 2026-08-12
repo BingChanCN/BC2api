@@ -181,6 +181,7 @@ export default {
     ops: 'Ops',
     promoCodes: 'Promo Codes',
     settings: 'Settings',
+    plugins: 'Plugin Runtime',
     myAccount: 'My Account',
     lightMode: 'Light Mode',
     darkMode: 'Dark Mode',

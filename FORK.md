@@ -2,6 +2,10 @@
 
 本仓库为 **Wei-Shaw/sub2api** 的全量二开基线，用于自定义前端、业务逻辑与运营功能。
 
+> **新成员请先读：** [`docs/FORK_DEVELOPMENT.md`](docs/FORK_DEVELOPMENT.md)  
+> 内含：相对官方改了什么、分层落点、开发/测试/同步上游/热更新插件全流程。  
+> 插件契约细节：[`docs/PLUGINS.md`](docs/PLUGINS.md)
+
 ## Remote
 
 | 名称 | 用途 |
@@ -51,8 +55,21 @@ cd backend
 go build -tags embed -ldflags="-X main.Version=fork-dev" -o sub2api ./cmd/server
 ```
 
+## 插件系统
+
+fork 已内置 **外部 HTTP 插件运行时**（见 `docs/PLUGINS.md`）：
+
+- 插件目录：`/app/data/plugins/<id>/manifest.json`
+- 静态示例：`examples/plugins/reaction-grid`
+- 管理页：`/admin/plugins`
+- 之后加运营页/小游戏/独立业务 API：**优先写插件**，不要改网关/计费核心
+- 自定义代码若必须进主仓，仍建议落在：
+  - 前端 `frontend/src/features/custom/**`、`frontend/src/views/custom/**`
+  - 后端 `backend/internal/custom/**`
+
 ## 范围约定
 
 - **可二开**：前端 UI、自定义页面/小游戏、新 API、运营逻辑、主题与信息架构
+- **优先插件**：能做成外部插件热加载的，不进主镜像发版
 - **慎改/少改**：gateway 转发、计费、调度核心（合并上游成本极高）
 - **优先配置**：能用 Settings / OEM / Admin API 解决的，不写进 fork 核心

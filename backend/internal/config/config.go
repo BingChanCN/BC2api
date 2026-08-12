@@ -32,7 +32,7 @@ const (
 
 // DefaultCSPPolicy is the default Content-Security-Policy with nonce support
 // __CSP_NONCE__ will be replaced with actual nonce at request time by the SecurityHeaders middleware
-const DefaultCSPPolicy = "default-src 'self'; worker-src 'self' blob:; script-src 'self' __CSP_NONCE__ https://challenges.cloudflare.com https://*.alicdn.com https://static.cloudflareinsights.com https://turing.captcha.qcloud.com https://turing.captcha.gtimg.com https://ca.turing.captcha.qcloud.com https://global.turing.captcha.gtimg.com https://www.tycaptcha.com https://cloudcache.tencentcs.com https://*.stripe.com https://static.airwallex.com https://checkout.airwallex.com https://static-demo.airwallex.com https://checkout-demo.airwallex.com; style-src 'self' 'unsafe-inline' https://*.captcha.gtimg.com https://fonts.googleapis.com https://*.alicdn.com https://static.airwallex.com https://checkout.airwallex.com https://static-demo.airwallex.com https://checkout-demo.airwallex.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://turing.captcha.qcloud.com https://www.tycaptcha.com https://rce.tencentrio.com https:; frame-src https://challenges.cloudflare.com https://turing.captcha.qcloud.com https://ca.turing.captcha.qcloud.com https://www.tycaptcha.com https://*.stripe.com https://checkout.airwallex.com https://checkout-demo.airwallex.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+const DefaultCSPPolicy = "default-src 'self'; worker-src 'self' blob:; script-src 'self' __CSP_NONCE__ https://challenges.cloudflare.com https://*.alicdn.com https://static.cloudflareinsights.com https://turing.captcha.qcloud.com https://turing.captcha.gtimg.com https://ca.turing.captcha.qcloud.com https://global.turing.captcha.gtimg.com https://www.tycaptcha.com https://cloudcache.tencentcs.com https://*.stripe.com https://static.airwallex.com https://checkout.airwallex.com https://static-demo.airwallex.com https://checkout-demo.airwallex.com; style-src 'self' 'unsafe-inline' https://*.captcha.gtimg.com https://fonts.googleapis.com https://*.alicdn.com https://static.airwallex.com https://checkout.airwallex.com https://static-demo.airwallex.com https://checkout-demo.airwallex.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://turing.captcha.qcloud.com https://www.tycaptcha.com https://rce.tencentrio.com https:; frame-src 'self' https://challenges.cloudflare.com https://turing.captcha.qcloud.com https://ca.turing.captcha.qcloud.com https://www.tycaptcha.com https://*.stripe.com https://checkout.airwallex.com https://checkout-demo.airwallex.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 
 // UMQ（用户消息队列）模式常量
 const (
@@ -99,6 +99,19 @@ type Config struct {
 	Idempotency             IdempotencyConfig             `mapstructure:"idempotency"`
 	BatchImage              BatchImageConfig              `mapstructure:"batch_image"`
 	ImageStorage            ImageStorageConfig            `mapstructure:"image_storage"`
+	Plugins                 PluginConfig                  `mapstructure:"plugins"`
+}
+
+// PluginConfig controls the external plugin runtime. Plugin manifests and
+// assets live outside the application binary so they can be changed without
+// rebuilding the Sub2API container.
+type PluginConfig struct {
+	Enabled                bool   `mapstructure:"enabled"`
+	Directory              string `mapstructure:"directory"`
+	RefreshIntervalSeconds int    `mapstructure:"refresh_interval_seconds"`
+	ProxyTimeoutSeconds    int    `mapstructure:"proxy_timeout_seconds"`
+	MaxRequestBodyBytes    int64  `mapstructure:"max_request_body_bytes"`
+	MaxResponseBodyBytes   int64  `mapstructure:"max_response_body_bytes"`
 }
 
 type LogConfig struct {
@@ -1916,6 +1929,15 @@ func setDefaults() {
 	viper.SetDefault("server.h2c.max_read_frame_size", 1<<20)              // 1MB（够用）
 	viper.SetDefault("server.h2c.max_upload_buffer_per_connection", 2<<20) // 2MB
 	viper.SetDefault("server.h2c.max_upload_buffer_per_stream", 512<<10)   // 512KB
+
+	// External plugins are discovered from the persistent data directory.
+	// An empty directory is a no-op, so the runtime can stay enabled by default.
+	viper.SetDefault("plugins.enabled", true)
+	viper.SetDefault("plugins.directory", "./data/plugins")
+	viper.SetDefault("plugins.refresh_interval_seconds", 2)
+	viper.SetDefault("plugins.proxy_timeout_seconds", 30)
+	viper.SetDefault("plugins.max_request_body_bytes", int64(2*1024*1024))
+	viper.SetDefault("plugins.max_response_body_bytes", int64(16*1024*1024))
 
 	// Log
 	viper.SetDefault("log.level", "info")

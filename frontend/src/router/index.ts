@@ -385,6 +385,17 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/plugins/:id',
+    name: 'Plugin',
+    component: () => import('@/views/user/PluginView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Plugin',
+      titleKey: 'pluginPage.title',
+    }
+  },
+  {
     path: '/custom/:id',
     name: 'CustomPage',
     component: () => import('@/views/user/CustomPageView.vue'),
@@ -570,6 +581,18 @@ const routes: RouteRecordRaw[] = [
       title: 'Promo Code Management',
       titleKey: 'admin.promo.title',
       descriptionKey: 'admin.promo.description'
+    }
+  },
+  {
+    path: '/admin/plugins',
+    name: 'AdminPlugins',
+    component: () => import('@/views/admin/PluginsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Plugin Runtime',
+      titleKey: 'admin.plugins.title',
+      descriptionKey: 'admin.plugins.description'
     }
   },
   {

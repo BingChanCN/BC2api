@@ -6,7 +6,15 @@ import NavigationProgress from '@/components/common/NavigationProgress.vue'
 import AdminComplianceDialog from '@/components/admin/AdminComplianceDialog.vue'
 import { resolveRouteDocumentTitle } from '@/router/title'
 import AnnouncementPopup from '@/components/common/AnnouncementPopup.vue'
-import { useAppStore, useAuthStore, useSubscriptionStore, useAnnouncementStore, useAdminComplianceStore, useAdminSettingsStore } from '@/stores'
+import {
+  useAnnouncementStore,
+  useAdminComplianceStore,
+  useAdminSettingsStore,
+  useAppStore,
+  useAuthStore,
+  usePluginStore,
+  useSubscriptionStore,
+} from '@/stores'
 import { getSetupStatus } from '@/api/setup'
 import { updateFavicon } from '@/utils/branding'
 
@@ -18,6 +26,7 @@ const subscriptionStore = useSubscriptionStore()
 const announcementStore = useAnnouncementStore()
 const adminComplianceStore = useAdminComplianceStore()
 const adminSettingsStore = useAdminSettingsStore()
+const pluginStore = usePluginStore()
 
 function updateDocumentTitle() {
   const customMenuItems = [
@@ -80,6 +89,11 @@ watch(
       })
       subscriptionStore.startPolling()
 
+      pluginStore.fetchPlugins(true).catch((error) => {
+        console.warn('Failed to preload plugins:', error)
+      })
+      pluginStore.startPolling()
+
       // Announcements: new login vs page refresh restore
       if (oldValue === false) {
         // New login: delay 3s then force fetch
@@ -94,6 +108,7 @@ watch(
     } else {
       // User logged out: clear data and stop polling
       subscriptionStore.clear()
+      pluginStore.clear()
       announcementStore.reset()
       adminComplianceStore.reset()
       document.removeEventListener('visibilitychange', onVisibilityChange)
@@ -110,6 +125,7 @@ router.afterEach(() => {
 })
 
 onBeforeUnmount(() => {
+  pluginStore.stopPolling()
   document.removeEventListener('visibilitychange', onVisibilityChange)
   window.removeEventListener('admin-compliance-required', onAdminComplianceRequired)
 })

@@ -71,6 +71,13 @@ export default {
       'The administrator enabled the entry but has not configured a recharge/subscription URL. Please contact admin.'
   },
 
+  // Hot-loaded external plugin page
+  pluginPage: {
+    title: 'Plugin',
+    notFoundTitle: 'Plugin unavailable',
+    notFoundDesc: 'This plugin does not exist, is disabled, or you do not have access.',
+  },
+
   // Custom Page (iframe embed)
   customPage: {
     title: 'Custom Page',

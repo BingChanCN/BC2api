@@ -69,6 +69,13 @@ export default {
     notConfiguredDesc: '管理员已开启入口，但尚未配置充值/订阅链接，请联系管理员。'
   },
 
+  // Hot-loaded external plugin page
+  pluginPage: {
+    title: '插件',
+    notFoundTitle: '插件不可用',
+    notFoundDesc: '该插件不存在、已禁用，或你没有访问权限。',
+  },
+
   // Custom Page (iframe embed)
   customPage: {
     title: '自定义页面',

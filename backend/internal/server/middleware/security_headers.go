@@ -53,6 +53,7 @@ var requiredCSPDirectiveValues = []struct {
 	directive string
 	value     string
 }{
+	{"frame-src", "'self'"},
 	{"script-src", CloudflareInsightsDomain},
 	{"script-src", TencentCaptchaDomain},
 	{"frame-src", TencentCaptchaDomain},

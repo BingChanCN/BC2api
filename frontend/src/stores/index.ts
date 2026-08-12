@@ -10,6 +10,7 @@ export { useSubscriptionStore } from './subscriptions'
 export { useOnboardingStore } from './onboarding'
 export { useAnnouncementStore } from './announcements'
 export { usePaymentStore } from './payment'
+export { usePluginStore } from './plugins'
 export { useAdminComplianceStore } from './adminCompliance'
 
 // Re-export types for convenience

@@ -29,7 +29,10 @@ services:
       - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-8080}:8080"
     volumes:
       # Data persistence (config.yaml will be auto-generated here)
+      # Also holds hot-loaded plugins under /app/data/plugins
       - sub2api_data:/app/data
+      # Optional: bind-mount plugins for live edits without copying into the volume
+      # - ./plugins:/app/data/plugins
       # Optional: Mount custom config.yaml (uncomment and create the file first)
       # Copy config.example.yaml to config.yaml, modify it, then uncomment:
       # - ./config.yaml:/app/data/config.yaml

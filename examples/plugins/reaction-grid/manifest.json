@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "reaction-grid",
+  "name": "反应网格",
+  "version": "1.0.0",
+  "description": "纯静态小游戏示例：无需侧车，复制到 plugins 目录即可热加载。",
+  "enabled": true,
+  "visibility": "user",
+  "sort_order": 100,
+  "runtime": {
+    "type": "static",
+    "entry": "public/index.html",
+    "spa": false
+  }
+}
