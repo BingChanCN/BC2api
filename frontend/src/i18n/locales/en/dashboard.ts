@@ -665,6 +665,8 @@ export default {
     balanceAddedAffiliate: 'Balance Added (Affiliate Transfer)',
     balanceAddedAdmin: 'Balance Added (Admin)',
     balanceDeductedAdmin: 'Balance Deducted (Admin)',
+    balanceAddedGame: 'Balance Added (Game)',
+    balanceDeductedGame: 'Balance Deducted (Game)',
     concurrencyAddedRedeem: 'Concurrency Added (Redeem)',
     concurrencyAddedAdmin: 'Concurrency Added (Admin)',
     concurrencyReducedAdmin: 'Concurrency Reduced (Admin)',

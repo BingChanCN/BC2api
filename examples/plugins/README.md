@@ -19,3 +19,26 @@ cp -r examples/plugins/reaction-grid /path/to/data/plugins/
 
 - 目录名 = `manifest.id` = `reaction-grid`
 - 入口文件：`public/index.html`
+
+## coinflip（游戏账本示例）
+
+proxy 模式侧车，演示余额下注/发奖：
+
+```text
+侧车：sub2api-plugin-coinflip（与主服务同网络）
+  1. POST /play（经主站 invoke 桥）→ 主站扣 stake
+  2. 开奖：赢 → 主站发 payout(2x)；输 → 不动
+  3. 发奖失败 → 自动 refund 下注
+```
+
+构建运行：
+
+```bash
+cd sidecar && go build -o coinflip main.go
+SUB2API_BASE_URL=http://sub2api:8080 \
+PLUGIN_SECRET_FILE=../.api-secret \
+./coinflip
+```
+
+清单里 `game.max_stake=10 / max_payout=20`，与侧车 `maxStake` 保持一致。
+上线前请把 `.api-secret` 换成随机密钥（32–256 位可打印 ASCII）。

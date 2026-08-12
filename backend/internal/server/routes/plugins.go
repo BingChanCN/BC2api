@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/Wei-Shaw/sub2api/internal/handler"
 	pluginruntime "github.com/Wei-Shaw/sub2api/internal/plugin"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -17,6 +18,7 @@ func RegisterPluginRoutes(
 	auditLog middleware.AuditLogMiddleware,
 	settingService *service.SettingService,
 	panelRateLimiter *middleware.PanelRateLimiter,
+	gameLedger *handler.GameLedgerHandler,
 ) {
 	r.GET("/plugin-runtime/:id/ui/*path", runtime.ServeUI)
 	r.HEAD("/plugin-runtime/:id/ui/*path", runtime.ServeUI)
@@ -38,5 +40,11 @@ func RegisterPluginRoutes(
 	{
 		admin.GET("", runtime.Diagnostics)
 		admin.POST("/refresh", runtime.Refresh)
+	}
+
+	// Internal game ledger: called by game sidecars with their plugin
+	// .api-secret. Never authenticated by user JWT or admin key.
+	if gameLedger != nil {
+		v1.POST("/internal/game/transactions", gameLedger.RecordTransaction)
 	}
 }

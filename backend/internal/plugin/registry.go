@@ -2,6 +2,7 @@ package pluginruntime
 
 import (
 	"bytes"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -115,6 +116,39 @@ func (r *Registry) getAny(id string) (*pluginEntry, bool) {
 	entry, ok := r.entries[id]
 	r.mu.RUnlock()
 	return entry, ok
+}
+
+// GamePolicy describes the balance-movement permissions of a game plugin.
+type GamePolicy struct {
+	ID        string
+	MaxStake  float64
+	MaxPayout float64
+}
+
+// GamePolicy authenticates a game sidecar bearer token and returns its caps.
+// Only enabled plugins that declared game.enabled may move balance, and the
+// token must match the plugin's shared .api-secret.
+func (r *Registry) GamePolicy(id, bearer string) (*GamePolicy, bool) {
+	entry, ok := r.getAny(id)
+	if !ok || entry.manifest.Game == nil || !entry.manifest.Game.Enabled {
+		return nil, false
+	}
+	if len(entry.apiSecret) == 0 || !validBearer(entry.apiSecret, bearer) {
+		return nil, false
+	}
+	return &GamePolicy{
+		ID:        id,
+		MaxStake:  entry.manifest.Game.MaxStake,
+		MaxPayout: entry.manifest.Game.MaxPayout,
+	}, true
+}
+
+func validBearer(secret []byte, bearer string) bool {
+	token, ok := strings.CutPrefix(strings.TrimSpace(bearer), "Bearer ")
+	if !ok {
+		return false
+	}
+	return len(token) == len(secret) && subtle.ConstantTimeCompare([]byte(token), secret) == 1
 }
 
 func (r *Registry) Status() RegistryStatus {

@@ -54,7 +54,20 @@ const (
 const (
 	AdjustmentTypeAdminBalance     = "admin_balance"     // 管理员调整余额
 	AdjustmentTypeAdminConcurrency = "admin_concurrency" // 管理员调整并发数
+	AdjustmentTypeGame             = "game"              // 游戏插件账本流水（redeem_codes.type）
 )
+
+// Game ledger kind constants（游戏侧车发起的四类交易）
+const (
+	GameKindStake  = "stake"  // 下注/预扣
+	GameKindPayout = "payout" // 赢家奖金
+	GameKindRefund = "refund" // 中断退款
+	GameKindBonus  = "bonus"  // 活动奖励
+)
+
+// GameLedgerNotesPrefix 是 game 流水 notes 的固定前缀，格式：
+// "game:<game_id>:<kind>:<round_id> <可读备注>"，便于审计与后续余额分类聚合。
+const GameLedgerNotesPrefix = "game:"
 
 // Group subscription type constants
 const (

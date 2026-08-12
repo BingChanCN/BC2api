@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "coinflip",
+  "name": "猜硬币",
+  "version": "1.0.0",
+  "description": "游戏账本示例：下注即扣、赢局发奖，走主站 game 流水。",
+  "enabled": true,
+  "visibility": "user",
+  "sort_order": 110,
+  "runtime": {
+    "type": "proxy",
+    "base_url": "http://sub2api-plugin-coinflip:8080"
+  },
+  "api": {
+    "base_url": "http://sub2api-plugin-coinflip:8080",
+    "secret_file": ".api-secret",
+    "allowed_methods": ["GET", "POST"]
+  },
+  "game": {
+    "enabled": true,
+    "max_stake": 10,
+    "max_payout": 20
+  }
+}

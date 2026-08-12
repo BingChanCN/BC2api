@@ -25,6 +25,7 @@ type Manifest struct {
 	SortOrder     int             `json:"sort_order"`
 	Runtime       RuntimeManifest `json:"runtime"`
 	API           *APIManifest    `json:"api,omitempty"`
+	Game          *GameManifest   `json:"game,omitempty"`
 }
 
 type RuntimeManifest struct {
@@ -38,6 +39,15 @@ type APIManifest struct {
 	BaseURL        string   `json:"base_url"`
 	SecretFile     string   `json:"secret_file"`
 	AllowedMethods []string `json:"allowed_methods,omitempty"`
+}
+
+// GameManifest declares that a plugin may move user balance through the
+// internal game ledger. Caps are enforced by the main service on every
+// transaction; 0 means the operation is disabled for this game.
+type GameManifest struct {
+	Enabled   bool    `json:"enabled"`
+	MaxStake  float64 `json:"max_stake"`
+	MaxPayout float64 `json:"max_payout"`
 }
 
 // PublicPlugin is safe to return to an authenticated browser.
@@ -137,6 +147,18 @@ func (m *Manifest) normalizeAndValidate(directoryName string) error {
 			return err
 		}
 		m.API.AllowedMethods = methods
+	}
+
+	if m.Game != nil && m.Game.Enabled {
+		if m.API == nil {
+			return fmt.Errorf("game.enabled requires an api section with a shared secret_file")
+		}
+		if m.Game.MaxStake <= 0 {
+			return fmt.Errorf("game.max_stake must be greater than 0")
+		}
+		if m.Game.MaxPayout <= 0 {
+			return fmt.Errorf("game.max_payout must be greater than 0")
+		}
 	}
 
 	return nil

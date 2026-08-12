@@ -198,3 +198,96 @@ examples/plugins/reaction-grid/
 ```
 
 复制到运行时目录后，用户侧栏会出现「反应网格」，打开即可玩，无需侧车、无需重建主容器。
+
+## 游戏账本（余额变动）
+
+游戏插件可以调用主站内部账本 API 移动用户余额。**游戏侧车永远不直接写数据库**；每次下注/发奖都产生 `type=game` 的余额流水，可在管理后台余额历史中审计。
+
+### 声明（manifest）
+
+```json
+{
+  "id": "coinflip",
+  "api": {
+    "base_url": "http://sub2api-plugin-coinflip:8080",
+    "secret_file": ".api-secret"
+  },
+  "game": {
+    "enabled": true,
+    "max_stake": 10,
+    "max_payout": 100
+  }
+}
+```
+
+- `game.enabled` 开启后必须同时声明 `api.secret_file`（账本用同一把共享密钥鉴权）
+- `max_stake` 限制 `stake` / `refund` 单笔金额；`max_payout` 限制 `payout` / `bonus`
+- 限额为 0 或缺失 → 清单校验失败，插件不上线
+
+### 内部 API
+
+```http
+POST /api/v1/internal/game/transactions
+Authorization: Bearer <该插件的 .api-secret 内容>
+```
+
+```json
+{
+  "game_id": "coinflip",
+  "kind": "stake",
+  "round_id": "5f9c1b2e-...",
+  "user_id": 123,
+  "amount": 1.5,
+  "note": "第 3 局下注"
+}
+```
+
+`kind` 四类：
+
+| kind | 方向 | 语义 |
+|------|------|------|
+| `stake` | - | 下注预扣；余额不足直接失败 |
+| `payout` | + | 赢家奖金 |
+| `refund` | + | 中断/取消退还（受 `max_stake` 限制） |
+| `bonus` | + | 活动奖励 |
+
+### 语义保证（主站强制）
+
+1. **鉴权**：Bearer 必须等于该 game 的 `.api-secret`；插件停用/清单失效立即冻结
+2. **限额**：超过 `max_stake` / `max_payout` 拒绝
+3. **原子性**：余额变动、`type=game` 流水、幂等标记在同一数据库事务提交
+4. **幂等**：同一 `(round_id, kind)` 只会结算一次；重放返回首次结果，不重复动账
+5. **不欠费**：`stake` 使余额为负时整笔拒绝，不产生流水
+
+### 响应
+
+```json
+{ "code": 0, "message": "success", "data": { "replayed": false, "balance_after": 8.5 } }
+```
+
+错误（`code` 为 HTTP 状态码）：
+
+| 状态 | reason | 含义 |
+|------|--------|------|
+| 401 | — | 游戏凭证无效/插件停用 |
+| 403 | `GAME_AMOUNT_TOO_LARGE` | 超过清单限额 |
+| 403 | `GAME_INSUFFICIENT_BALANCE` | 用户余额不足 |
+| 409 | `GAME_ROUND_IN_PROGRESS` | 同轮交易处理中（请稍后重试） |
+| 409 | `GAME_ROUND_SETTLED` | 同 `(round_id, kind)` 已结算 |
+
+### 审计
+
+- 流水类型 `game`，管理后台余额历史可见（含中文/英文文案）
+- `notes` 固定前缀：`game:<game_id>:<kind>:<round_id> <备注>`
+- 后续做余额分类时按 `type` 或 `game:<id>` 前缀聚合
+
+### 推荐下注流
+
+```text
+1. sidecar 收到开局请求 → POST stake（先扣，失败不开局）
+2. 结算：
+   - 赢 → POST payout（奖金）
+   - 输 → 不动（stake 已扣）
+   - 中断 → POST refund
+3. round_id 必须由 sidecar 生成并持久化，绝不信任客户端
+```

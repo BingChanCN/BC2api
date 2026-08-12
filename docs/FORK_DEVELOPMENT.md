@@ -112,7 +112,16 @@ L4  核心改动（慎用）
 | `docs/PLUGINS.md` | 插件契约 |
 | `docs/FORK_DEVELOPMENT.md` | 本文 |
 | `examples/plugins/reaction-grid/**` | 纯静态示例小游戏 |
+| `examples/plugins/coinflip/**` | 游戏账本示例（proxy 侧车 + stake/payout/refund） |
 | `examples/plugins/README.md` | 示例说明 |
+| `backend/internal/service/game_ledger.go` | 游戏账本：限额/幂等/动账/`type=game` 流水同事务 |
+| `backend/internal/service/game_ledger_test.go` | 账本事务/重放/余额不足测试（sqlmock） |
+| `backend/internal/repository/game_ledger_repo.go` | 事务内幂等表读写（`RETURNING` 避免 Exec 限制） |
+| `backend/internal/handler/game_ledger_handler.go` | `POST /api/v1/internal/game/transactions`（Bearer=插件密钥） |
+| `backend/internal/plugin/game_policy_test.go` | 游戏密钥鉴权/限额/清单校验测试 |
+| `backend/migrations/221_user_group_rate_ceilings.sql` | 用户倍率上限表 |
+| `backend/internal/repository/user_group_rate_ceiling_repo.go` | 上限仓储 |
+| `backend/internal/service/user_group_rate_ceiling.go` | 上限比较/读写 |
 
 ### 4.2 修改（与上游同文件，同步时要人工看）
 
@@ -132,6 +141,22 @@ L4  核心改动（慎用）
 | `frontend/src/i18n/locales/{zh,en}/common.ts` | `nav.plugins` |
 | `frontend/src/i18n/locales/{zh,en}/misc.ts` | `pluginPage.*` |
 | `frontend/src/i18n/locales/{zh,en}/admin/index.ts` | 合并 plugins 文案模块 |
+| `backend/internal/domain/constants.go` | `AdjustmentTypeGame`、game kind、notes 前缀 |
+| `backend/internal/plugin/manifest.go` | `game` 段声明 + 校验（需 `api.secret_file`、正数限额） |
+| `backend/internal/plugin/registry.go` | `GamePolicy`：Bearer=插件密钥鉴权 + 限额 |
+| `backend/internal/repository/redeem_code_repo.go` | `Create` 支持事务上下文（`clientFromContext`） |
+| `backend/internal/repository/wire.go` | `NewGameLedgerRepository` |
+| `backend/internal/service/wire.go` | `NewGameLedgerService` |
+| `backend/internal/handler/handler.go` + `wire.go` | `Handlers.GameLedger` |
+| `backend/cmd/server/wire_gen.go` | 手工同步 Wire 图（无 wire 工具时保持结构一致） |
+| `backend/internal/server/routes/plugins.go` | 内部账本路由 |
+| `backend/internal/server/router.go` | `SetPluginRegistry` 绑定 |
+| `frontend/src/components/admin/user/UserBalanceHistoryModal.vue` | 余额历史支持 `game` 类型 |
+| `frontend/src/i18n/locales/{zh,en}/admin/overview.ts` | `typeGame` 文案 |
+| `frontend/src/i18n/locales/{zh,en}/dashboard.ts` | 游戏余额变动文案 |
+| `frontend/src/views/user/AvailableChannelsView.vue` | 渠道页倍率上限设置 |
+| `frontend/src/api/groups.ts` | 用户倍率上限读写 API |
+| `frontend/src/i18n/locales/{zh,en}/dashboard.ts`（availableChannels） | 上限设置文案 |
 | `FORK.md` | 插件与落点约定 |
 | `.gitignore` | 放行 `docs/PLUGINS.md`、`docs/FORK_DEVELOPMENT.md` |
 

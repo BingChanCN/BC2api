@@ -662,6 +662,7 @@ export default {
       typeBalance: 'Balance (Redeem)',
       typeAffiliateBalance: 'Balance (Affiliate Transfer)',
       typeAdminBalance: 'Balance (Admin)',
+      typeGame: 'Balance (Game)',
       typeConcurrency: 'Concurrency (Redeem)',
       typeAdminConcurrency: 'Concurrency (Admin)',
       typeSubscription: 'Subscription',
