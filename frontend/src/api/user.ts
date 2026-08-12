@@ -194,6 +194,43 @@ export async function getMyPlatformQuotas(): Promise<PlatformQuotasResponse> {
   return data
 }
 
+/** 用户侧余额明细条目（不含 admin 专属 notes/user 字段） */
+export interface UserBalanceHistoryItem {
+  id: number
+  code: string
+  type: string
+  value: number
+  status: string
+  used_by: number | null
+  used_at: string | null
+  created_at: string
+  group_id: number | null
+  validity_days: number
+  group?: { id: number; name: string } | null
+}
+
+export interface UserBalanceHistoryResponse {
+  items: UserBalanceHistoryItem[]
+  total: number
+  page: number
+  page_size: number
+  pages: number
+}
+
+/**
+ * 获取当前登录用户的余额/并发变动明细（只读自己的流水）。
+ */
+export async function getMyBalanceHistory(
+  page: number = 1,
+  pageSize: number = 20,
+  type?: string
+): Promise<UserBalanceHistoryResponse> {
+  const params: Record<string, any> = { page, page_size: pageSize }
+  if (type) params.type = type
+  const { data } = await apiClient.get<UserBalanceHistoryResponse>('/user/balance-history', { params })
+  return data
+}
+
 export const userAPI = {
   getProfile,
   updateProfile,
@@ -210,6 +247,7 @@ export const userAPI = {
   getAffiliateDetail,
   transferAffiliateQuota,
   getMyPlatformQuotas,
+  getMyBalanceHistory,
 }
 
 export default userAPI

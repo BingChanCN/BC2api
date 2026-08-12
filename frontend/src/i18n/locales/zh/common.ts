@@ -163,6 +163,7 @@ export default {
     batchImage: '批量生图',
     usage: '使用记录',
     redeem: '兑换',
+    balanceHistory: '余额明细',
     affiliate: '邀请返利',
     affiliateManagement: '邀请返利',
     affiliateInviteRecords: '邀请记录',

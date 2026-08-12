@@ -686,6 +686,30 @@ export default {
     pleaseEnterCode: '请输入兑换码'
   },
 
+  // Balance history (user-facing)
+  balanceHistory: {
+    title: '余额明细',
+    description: '余额与并发的变动记录（含游戏结算）',
+    loadFailed: '加载余额明细失败',
+    empty: '暂无变动记录',
+    columns: {
+      time: '时间',
+      type: '类型',
+      amount: '金额'
+    },
+    filters: {
+      all: '全部类型',
+      game: '游戏结算',
+      redeem: '兑换充值',
+      affiliate: '返利转入',
+      admin: '管理员调整',
+      concurrency: '并发变动',
+      subscription: '订阅'
+    },
+    previous: '上一页',
+    next: '下一页'
+  },
+
   // Profile
   profile: {
     title: '个人设置',

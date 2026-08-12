@@ -67,6 +67,7 @@ type Handlers struct {
 	AsyncImage       *AsyncImageHandler
 	BatchImage       *BatchImageHandler
 	GameLedger       *GameLedgerHandler
+	UserBalance      *UserBalanceHandler
 }
 
 // BuildInfo contains build-time information

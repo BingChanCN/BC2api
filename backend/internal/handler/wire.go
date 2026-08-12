@@ -189,6 +189,7 @@ func ProvideHandlers(
 	asyncImageHandler *AsyncImageHandler,
 	batchImageHandler *BatchImageHandler,
 	gameLedgerHandler *GameLedgerHandler,
+	userBalanceHandler *UserBalanceHandler,
 	_ *service.IdempotencyCoordinator,
 	_ *service.IdempotencyCleanupService,
 ) *Handlers {
@@ -215,6 +216,7 @@ func ProvideHandlers(
 		AsyncImage:       asyncImageHandler,
 		BatchImage:       batchImageHandler,
 		GameLedger:       gameLedgerHandler,
+		UserBalance:      userBalanceHandler,
 	}
 }
 
@@ -242,6 +244,7 @@ var ProviderSet = wire.NewSet(
 	NewAsyncImageHandler,
 	ProvideBatchImageHandler,
 	NewGameLedgerHandler,
+	NewUserBalanceHandler,
 
 	// Admin handlers
 	admin.NewDashboardHandler,

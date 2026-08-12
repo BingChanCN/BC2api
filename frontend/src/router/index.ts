@@ -253,6 +253,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/balance-history',
+    name: 'UserBalanceHistory',
+    component: () => import('@/views/user/BalanceHistoryView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Balance History',
+      titleKey: 'balanceHistory.title',
+      descriptionKey: 'balanceHistory.description'
+    }
+  },
+  {
     path: '/affiliate',
     name: 'Affiliate',
     component: () => import('@/views/user/AffiliateView.vue'),

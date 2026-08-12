@@ -681,6 +681,30 @@ export default {
     pleaseEnterCode: 'Please enter a redeem code'
   },
 
+  // Balance history (user-facing)
+  balanceHistory: {
+    title: 'Balance History',
+    description: 'Balance and concurrency changes, including game settlements',
+    loadFailed: 'Failed to load balance history',
+    empty: 'No records yet',
+    columns: {
+      time: 'Time',
+      type: 'Type',
+      amount: 'Amount'
+    },
+    filters: {
+      all: 'All types',
+      game: 'Game',
+      redeem: 'Redeem',
+      affiliate: 'Affiliate',
+      admin: 'Admin adjustment',
+      concurrency: 'Concurrency',
+      subscription: 'Subscription'
+    },
+    previous: 'Previous',
+    next: 'Next'
+  },
+
   // Profile
   profile: {
     title: 'Profile Settings',
