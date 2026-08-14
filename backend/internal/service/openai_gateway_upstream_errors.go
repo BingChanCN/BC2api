@@ -141,6 +141,10 @@ func isOpenAITransientProcessingError(upstreamStatusCode int, upstreamMsg string
 		if lower == "" {
 			return false
 		}
+		// Some OpenAI-compatible relays report a transient provider-router miss as 400.
+		if strings.Contains(lower, "unknown provider for model") {
+			return true
+		}
 		if strings.Contains(lower, "an error occurred while processing your request") {
 			return true
 		}

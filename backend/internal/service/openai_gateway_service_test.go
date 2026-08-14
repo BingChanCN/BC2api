@@ -193,6 +193,31 @@ func TestOpenAIGatewayService_ForwardAsAnthropic_TempUnschedulableReturnsFailove
 	require.NotEmpty(t, secondRec.Body.String())
 }
 
+func TestFailoverOpenAIUpstreamHTTPError_UnknownProvider400TriggersFailover(t *testing.T) {
+	repo := &tempUnschedulableOpenAIAccountRepo{}
+	svc := &OpenAIGatewayService{
+		rateLimitService: NewRateLimitService(repo, nil, &config.Config{}, nil, nil),
+	}
+	account := &Account{
+		ID: 5101, Platform: PlatformOpenAI, Type: AccountTypeAPIKey,
+		Credentials: map[string]any{"api_key": "sk-test"},
+	}
+	body := []byte(`{"error":{"message":"unknown provider for model gpt-5.6-sol","type":"upstream_error"}}`)
+	resp := &http.Response{StatusCode: http.StatusBadRequest, Header: http.Header{}}
+
+	got := svc.failoverOpenAIUpstreamHTTPError(
+		context.Background(), nil, account, resp, body,
+		"unknown provider for model gpt-5.6-sol", "gpt-5.6-sol",
+	)
+
+	require.NotNil(t, got, "the observed transient provider-router error must fail over")
+	require.Equal(t, http.StatusBadRequest, got.StatusCode)
+	require.True(t, got.ShouldRetryNextAccount())
+	require.False(t, got.RetryableOnSameAccount)
+	require.Zero(t, repo.modelRateLimitAccountID, "transient routing misses must not create a persistent model-not-found cooldown")
+	require.False(t, svc.isOpenAIAccountModelRuntimeBlocked(account, "gpt-5.6-sol"), "the first transient miss must not block the account-model pair")
+}
+
 func TestFailoverOpenAIUpstreamHTTPError_NilContextSkipsTempUnschedulablePolicy(t *testing.T) {
 	repo := &tempUnschedulableOpenAIAccountRepo{}
 	svc := &OpenAIGatewayService{

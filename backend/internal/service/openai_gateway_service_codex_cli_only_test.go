@@ -275,6 +275,18 @@ func TestIsOpenAITransientProcessingError(t *testing.T) {
 		[]byte(`{"error":{"message":"Selected model is at capacity. Please try a different model.","type":"invalid_request_error"}}`),
 	))
 
+	// OpenAI-compatible relays may return this transient routing miss as HTTP 400.
+	require.True(t, isOpenAITransientProcessingError(
+		http.StatusBadRequest,
+		"",
+		[]byte(`{"error":{"message":"unknown provider for model gpt-5.6-sol","type":"upstream_error"}}`),
+	))
+	require.True(t, isOpenAITransientProcessingError(
+		http.StatusBadRequest,
+		"",
+		[]byte(`{"error":{"code":"model_not_found","message":"unknown provider for model gpt-5.6-sol","param":"model","type":"invalid_request_error"}}`),
+	))
+
 	require.True(t, isOpenAITransientProcessingError(
 		http.StatusBadRequest,
 		"",
@@ -298,6 +310,12 @@ func TestIsOpenAITransientProcessingError(t *testing.T) {
 		"Missing required parameter: 'instructions'",
 		[]byte(`{"error":{"message":"Missing required parameter: 'instructions'"}}`),
 	))
+
+	require.False(t, isOpenAITransientProcessingError(
+		http.StatusBadRequest,
+		"The model gpt-5.6-sol does not exist",
+		[]byte(`{"error":{"code":"model_not_found","message":"The model gpt-5.6-sol does not exist"}}`),
+	), "only the observed transient provider-router wording should match")
 }
 
 func TestIsOpenAIContextWindowError(t *testing.T) {
