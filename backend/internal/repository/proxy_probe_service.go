@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -48,10 +49,12 @@ const (
 // 某些 AI API 专用代理只允许访问特定域名，因此需要多个备选
 var probeURLs = []struct {
 	url    string
-	parser string // "ip-api" or "ipify"
+	parser string // "ip-api", "ipify", or "plain-ip"
 }{
 	{"http://ip-api.com/json/?lang=zh-CN", "ip-api"},
+	{"https://api64.ipify.org?format=json", "ipify"},
 	{"http://api64.ipify.org?format=json", "ipify"},
+	{"http://checkip.amazonaws.com", "plain-ip"},
 }
 
 type proxyProbeService struct {
@@ -101,7 +104,7 @@ func (s *proxyProbeService) probeWithURL(ctx context.Context, client *http.Clien
 	latencyMs := time.Since(startTime).Milliseconds()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, latencyMs, fmt.Errorf("request failed with status: %d", resp.StatusCode)
+		return nil, latencyMs, fmt.Errorf("request failed with status: %d (%s)", resp.StatusCode, req.URL.Host)
 	}
 
 	maxResponseBytes := s.maxResponseBytes
@@ -121,6 +124,8 @@ func (s *proxyProbeService) probeWithURL(ctx context.Context, client *http.Clien
 		return s.parseIPAPI(body, latencyMs)
 	case "ipify":
 		return s.parseIPify(body, latencyMs)
+	case "plain-ip":
+		return s.parsePlainIP(body, latencyMs)
 	default:
 		return nil, latencyMs, fmt.Errorf("unknown parser: %s", parser)
 	}
@@ -178,4 +183,12 @@ func (s *proxyProbeService) parseIPify(body []byte, latencyMs int64) (*service.P
 	return &service.ProxyExitInfo{
 		IP: result.IP,
 	}, latencyMs, nil
+}
+
+func (s *proxyProbeService) parsePlainIP(body []byte, latencyMs int64) (*service.ProxyExitInfo, int64, error) {
+	ip := strings.TrimSpace(string(body))
+	if net.ParseIP(ip) == nil {
+		return nil, latencyMs, fmt.Errorf("plain-ip: invalid address")
+	}
+	return &service.ProxyExitInfo{IP: ip}, latencyMs, nil
 }

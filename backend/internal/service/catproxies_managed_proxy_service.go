@@ -149,7 +149,7 @@ func (s *CatProxiesManagedProxyService) CreateConfig(ctx context.Context, input 
 	}
 	probe, err := s.ProbeProxy(ctx, derived.Proxy, derived.Target)
 	if err != nil {
-		return nil, fmt.Errorf("probe catproxies config before create: %w", err)
+		return nil, catProxiesBadRequest(fmt.Errorf("probe catproxies config before create: %w", err))
 	}
 	config.LastProbeAt = &probe.CheckedAt
 	config.LastProbeLatencyMs = &probe.LatencyMs
@@ -437,7 +437,7 @@ func (s *CatProxiesManagedProxyService) TestConfig(ctx context.Context, id int64
 		if updateErr := s.configRepo.Update(ctx, config); updateErr != nil {
 			return nil, fmt.Errorf("probe catproxies config: %v; persist probe failure: %w", probeErr, updateErr)
 		}
-		return nil, probeErr
+		return nil, catProxiesBadRequest(probeErr)
 	}
 	config.LastProbeAt = &probe.CheckedAt
 	config.LastProbeLatencyMs = &probe.LatencyMs
