@@ -47,5 +47,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # ubuntu-latest is US-hosted; goproxy.cn (Dockerfile default) is for
+          # China local builds and is slow from GitHub.
+          build-args: |
+            GOPROXY=https://proxy.golang.org,direct
+            GOSUMDB=sum.golang.org
+          cache-from: type=gha,scope=fork-image
+          cache-to: type=gha,mode=max,scope=fork-image

@@ -70,12 +70,12 @@ RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /app/backend
 
-# Copy go mod files first (better caching)
+# Copy go mod files first (better caching).
+# Modules stay in the image layer (not a cache mount) so GitHub Actions
+# cache-from can restore them. Ephemeral GHA runners do not keep BuildKit
+# cache mounts, and go build would otherwise re-download every module.
 COPY backend/go.mod backend/go.sum ./
-# Cache mount keeps the module cache across builds so a transient CDN blip on
-# retry resumes instead of re-fetching every zip from scratch.
-RUN --mount=type=cache,id=sub2api-gomod,target=/go/pkg/mod \
-    go mod download
+RUN go mod download
 
 # Copy backend source first
 COPY backend/ ./
