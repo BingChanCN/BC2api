@@ -129,6 +129,18 @@ func (f BatchImageJobFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BatchImageJobMutation", m)
 }
 
+// The CatProxyProviderConfigFunc type is an adapter to allow the use of ordinary
+// function as CatProxyProviderConfig mutator.
+type CatProxyProviderConfigFunc func(context.Context, *ent.CatProxyProviderConfigMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CatProxyProviderConfigFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CatProxyProviderConfigMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CatProxyProviderConfigMutation", m)
+}
+
 // The ChannelMonitorFunc type is an adapter to allow the use of ordinary
 // function as ChannelMonitor mutator.
 type ChannelMonitorFunc func(context.Context, *ent.ChannelMonitorMutation) (ent.Value, error)
@@ -235,6 +247,18 @@ func (f IdentityAdoptionDecisionFunc) Mutate(ctx context.Context, m ent.Mutation
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IdentityAdoptionDecisionMutation", m)
+}
+
+// The ManagedProxyLeaseFunc type is an adapter to allow the use of ordinary
+// function as ManagedProxyLease mutator.
+type ManagedProxyLeaseFunc func(context.Context, *ent.ManagedProxyLeaseMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ManagedProxyLeaseFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ManagedProxyLeaseMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ManagedProxyLeaseMutation", m)
 }
 
 // The PaymentAuditLogFunc type is an adapter to allow the use of ordinary

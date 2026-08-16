@@ -936,6 +936,29 @@ func HasBackupProxyWith(preds ...predicate.Proxy) predicate.Proxy {
 	})
 }
 
+// HasManagedProxyLeases applies the HasEdge predicate on the "managed_proxy_leases" edge.
+func HasManagedProxyLeases() predicate.Proxy {
+	return predicate.Proxy(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ManagedProxyLeasesTable, ManagedProxyLeasesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasManagedProxyLeasesWith applies the HasEdge predicate on the "managed_proxy_leases" edge with a given conditions (other predicates).
+func HasManagedProxyLeasesWith(preds ...predicate.ManagedProxyLease) predicate.Proxy {
+	return predicate.Proxy(func(s *sql.Selector) {
+		step := newManagedProxyLeasesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Proxy) predicate.Proxy {
 	return predicate.Proxy(sql.AndPredicates(predicates...))

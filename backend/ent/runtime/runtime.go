@@ -15,6 +15,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/batchimageevent"
 	"github.com/Wei-Shaw/sub2api/ent/batchimageitem"
 	"github.com/Wei-Shaw/sub2api/ent/batchimagejob"
+	"github.com/Wei-Shaw/sub2api/ent/catproxyproviderconfig"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitor"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitordailyrollup"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorhistory"
@@ -24,6 +25,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
+	"github.com/Wei-Shaw/sub2api/ent/managedproxylease"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -252,8 +254,12 @@ func init() {
 	accountDescSchedulable := accountFields[17].Descriptor()
 	// account.DefaultSchedulable holds the default value on creation for the schedulable field.
 	account.DefaultSchedulable = accountDescSchedulable.Default.(bool)
+	// accountDescManagedProxyReady is the schema descriptor for managed_proxy_ready field.
+	accountDescManagedProxyReady := accountFields[18].Descriptor()
+	// account.DefaultManagedProxyReady holds the default value on creation for the managed_proxy_ready field.
+	account.DefaultManagedProxyReady = accountDescManagedProxyReady.Default.(bool)
 	// accountDescSessionWindowStatus is the schema descriptor for session_window_status field.
-	accountDescSessionWindowStatus := accountFields[25].Descriptor()
+	accountDescSessionWindowStatus := accountFields[26].Descriptor()
 	// account.SessionWindowStatusValidator is a validator for the "session_window_status" field. It is called by the builders before save.
 	account.SessionWindowStatusValidator = accountDescSessionWindowStatus.Validators[0].(func(string) error)
 	accountgroupFields := schema.AccountGroup{}.Fields()
@@ -602,6 +608,119 @@ func init() {
 	batchimagejob.DefaultUpdatedAt = batchimagejobDescUpdatedAt.Default.(func() time.Time)
 	// batchimagejob.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	batchimagejob.UpdateDefaultUpdatedAt = batchimagejobDescUpdatedAt.UpdateDefault.(func() time.Time)
+	catproxyproviderconfigMixin := schema.CatProxyProviderConfig{}.Mixin()
+	catproxyproviderconfigMixinFields0 := catproxyproviderconfigMixin[0].Fields()
+	_ = catproxyproviderconfigMixinFields0
+	catproxyproviderconfigFields := schema.CatProxyProviderConfig{}.Fields()
+	_ = catproxyproviderconfigFields
+	// catproxyproviderconfigDescCreatedAt is the schema descriptor for created_at field.
+	catproxyproviderconfigDescCreatedAt := catproxyproviderconfigMixinFields0[0].Descriptor()
+	// catproxyproviderconfig.DefaultCreatedAt holds the default value on creation for the created_at field.
+	catproxyproviderconfig.DefaultCreatedAt = catproxyproviderconfigDescCreatedAt.Default.(func() time.Time)
+	// catproxyproviderconfigDescUpdatedAt is the schema descriptor for updated_at field.
+	catproxyproviderconfigDescUpdatedAt := catproxyproviderconfigMixinFields0[1].Descriptor()
+	// catproxyproviderconfig.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	catproxyproviderconfig.DefaultUpdatedAt = catproxyproviderconfigDescUpdatedAt.Default.(func() time.Time)
+	// catproxyproviderconfig.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	catproxyproviderconfig.UpdateDefaultUpdatedAt = catproxyproviderconfigDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// catproxyproviderconfigDescName is the schema descriptor for name field.
+	catproxyproviderconfigDescName := catproxyproviderconfigFields[0].Descriptor()
+	// catproxyproviderconfig.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	catproxyproviderconfig.NameValidator = func() func(string) error {
+		validators := catproxyproviderconfigDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// catproxyproviderconfigDescIsDefault is the schema descriptor for is_default field.
+	catproxyproviderconfigDescIsDefault := catproxyproviderconfigFields[3].Descriptor()
+	// catproxyproviderconfig.DefaultIsDefault holds the default value on creation for the is_default field.
+	catproxyproviderconfig.DefaultIsDefault = catproxyproviderconfigDescIsDefault.Default.(bool)
+	// catproxyproviderconfigDescHost is the schema descriptor for host field.
+	catproxyproviderconfigDescHost := catproxyproviderconfigFields[5].Descriptor()
+	// catproxyproviderconfig.HostValidator is a validator for the "host" field. It is called by the builders before save.
+	catproxyproviderconfig.HostValidator = func() func(string) error {
+		validators := catproxyproviderconfigDescHost.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(host string) error {
+			for _, fn := range fns {
+				if err := fn(host); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// catproxyproviderconfigDescBaseUsername is the schema descriptor for base_username field.
+	catproxyproviderconfigDescBaseUsername := catproxyproviderconfigFields[6].Descriptor()
+	// catproxyproviderconfig.BaseUsernameValidator is a validator for the "base_username" field. It is called by the builders before save.
+	catproxyproviderconfig.BaseUsernameValidator = func() func(string) error {
+		validators := catproxyproviderconfigDescBaseUsername.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(base_username string) error {
+			for _, fn := range fns {
+				if err := fn(base_username); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// catproxyproviderconfigDescPassword is the schema descriptor for password field.
+	catproxyproviderconfigDescPassword := catproxyproviderconfigFields[7].Descriptor()
+	// catproxyproviderconfig.PasswordValidator is a validator for the "password" field. It is called by the builders before save.
+	catproxyproviderconfig.PasswordValidator = func() func(string) error {
+		validators := catproxyproviderconfigDescPassword.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(password string) error {
+			for _, fn := range fns {
+				if err := fn(password); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// catproxyproviderconfigDescDefaultCountry is the schema descriptor for default_country field.
+	catproxyproviderconfigDescDefaultCountry := catproxyproviderconfigFields[8].Descriptor()
+	// catproxyproviderconfig.DefaultCountryValidator is a validator for the "default_country" field. It is called by the builders before save.
+	catproxyproviderconfig.DefaultCountryValidator = catproxyproviderconfigDescDefaultCountry.Validators[0].(func(string) error)
+	// catproxyproviderconfigDescDefaultState is the schema descriptor for default_state field.
+	catproxyproviderconfigDescDefaultState := catproxyproviderconfigFields[9].Descriptor()
+	// catproxyproviderconfig.DefaultStateValidator is a validator for the "default_state" field. It is called by the builders before save.
+	catproxyproviderconfig.DefaultStateValidator = catproxyproviderconfigDescDefaultState.Validators[0].(func(string) error)
+	// catproxyproviderconfigDescDefaultCity is the schema descriptor for default_city field.
+	catproxyproviderconfigDescDefaultCity := catproxyproviderconfigFields[10].Descriptor()
+	// catproxyproviderconfig.DefaultCityValidator is a validator for the "default_city" field. It is called by the builders before save.
+	catproxyproviderconfig.DefaultCityValidator = catproxyproviderconfigDescDefaultCity.Validators[0].(func(string) error)
+	// catproxyproviderconfigDescLifetimeMinutes is the schema descriptor for lifetime_minutes field.
+	catproxyproviderconfigDescLifetimeMinutes := catproxyproviderconfigFields[11].Descriptor()
+	// catproxyproviderconfig.DefaultLifetimeMinutes holds the default value on creation for the lifetime_minutes field.
+	catproxyproviderconfig.DefaultLifetimeMinutes = catproxyproviderconfigDescLifetimeMinutes.Default.(int)
+	// catproxyproviderconfig.LifetimeMinutesValidator is a validator for the "lifetime_minutes" field. It is called by the builders before save.
+	catproxyproviderconfig.LifetimeMinutesValidator = catproxyproviderconfigDescLifetimeMinutes.Validators[0].(func(int) error)
+	// catproxyproviderconfigDescStrict is the schema descriptor for strict field.
+	catproxyproviderconfigDescStrict := catproxyproviderconfigFields[12].Descriptor()
+	// catproxyproviderconfig.DefaultStrict holds the default value on creation for the strict field.
+	catproxyproviderconfig.DefaultStrict = catproxyproviderconfigDescStrict.Default.(bool)
 	channelmonitorMixin := schema.ChannelMonitor{}.Mixin()
 	channelmonitorMixinFields0 := channelmonitorMixin[0].Fields()
 	_ = channelmonitorMixinFields0
@@ -1275,6 +1394,79 @@ func init() {
 	identityadoptiondecisionDescDecidedAt := identityadoptiondecisionFields[4].Descriptor()
 	// identityadoptiondecision.DefaultDecidedAt holds the default value on creation for the decided_at field.
 	identityadoptiondecision.DefaultDecidedAt = identityadoptiondecisionDescDecidedAt.Default.(func() time.Time)
+	managedproxyleaseMixin := schema.ManagedProxyLease{}.Mixin()
+	managedproxyleaseMixinFields0 := managedproxyleaseMixin[0].Fields()
+	_ = managedproxyleaseMixinFields0
+	managedproxyleaseFields := schema.ManagedProxyLease{}.Fields()
+	_ = managedproxyleaseFields
+	// managedproxyleaseDescCreatedAt is the schema descriptor for created_at field.
+	managedproxyleaseDescCreatedAt := managedproxyleaseMixinFields0[0].Descriptor()
+	// managedproxylease.DefaultCreatedAt holds the default value on creation for the created_at field.
+	managedproxylease.DefaultCreatedAt = managedproxyleaseDescCreatedAt.Default.(func() time.Time)
+	// managedproxyleaseDescUpdatedAt is the schema descriptor for updated_at field.
+	managedproxyleaseDescUpdatedAt := managedproxyleaseMixinFields0[1].Descriptor()
+	// managedproxylease.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	managedproxylease.DefaultUpdatedAt = managedproxyleaseDescUpdatedAt.Default.(func() time.Time)
+	// managedproxylease.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	managedproxylease.UpdateDefaultUpdatedAt = managedproxyleaseDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// managedproxyleaseDescSessionID is the schema descriptor for session_id field.
+	managedproxyleaseDescSessionID := managedproxyleaseFields[3].Descriptor()
+	// managedproxylease.SessionIDValidator is a validator for the "session_id" field. It is called by the builders before save.
+	managedproxylease.SessionIDValidator = func() func(string) error {
+		validators := managedproxyleaseDescSessionID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(session_id string) error {
+			for _, fn := range fns {
+				if err := fn(session_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// managedproxyleaseDescTargetCountry is the schema descriptor for target_country field.
+	managedproxyleaseDescTargetCountry := managedproxyleaseFields[4].Descriptor()
+	// managedproxylease.TargetCountryValidator is a validator for the "target_country" field. It is called by the builders before save.
+	managedproxylease.TargetCountryValidator = managedproxyleaseDescTargetCountry.Validators[0].(func(string) error)
+	// managedproxyleaseDescTargetState is the schema descriptor for target_state field.
+	managedproxyleaseDescTargetState := managedproxyleaseFields[5].Descriptor()
+	// managedproxylease.TargetStateValidator is a validator for the "target_state" field. It is called by the builders before save.
+	managedproxylease.TargetStateValidator = managedproxyleaseDescTargetState.Validators[0].(func(string) error)
+	// managedproxyleaseDescTargetCity is the schema descriptor for target_city field.
+	managedproxyleaseDescTargetCity := managedproxyleaseFields[6].Descriptor()
+	// managedproxylease.TargetCityValidator is a validator for the "target_city" field. It is called by the builders before save.
+	managedproxylease.TargetCityValidator = managedproxyleaseDescTargetCity.Validators[0].(func(string) error)
+	// managedproxyleaseDescLifetimeMinutes is the schema descriptor for lifetime_minutes field.
+	managedproxyleaseDescLifetimeMinutes := managedproxyleaseFields[8].Descriptor()
+	// managedproxylease.LifetimeMinutesValidator is a validator for the "lifetime_minutes" field. It is called by the builders before save.
+	managedproxylease.LifetimeMinutesValidator = managedproxyleaseDescLifetimeMinutes.Validators[0].(func(int) error)
+	// managedproxyleaseDescObservedExitIP is the schema descriptor for observed_exit_ip field.
+	managedproxyleaseDescObservedExitIP := managedproxyleaseFields[12].Descriptor()
+	// managedproxylease.ObservedExitIPValidator is a validator for the "observed_exit_ip" field. It is called by the builders before save.
+	managedproxylease.ObservedExitIPValidator = managedproxyleaseDescObservedExitIP.Validators[0].(func(string) error)
+	// managedproxyleaseDescObservedCountry is the schema descriptor for observed_country field.
+	managedproxyleaseDescObservedCountry := managedproxyleaseFields[13].Descriptor()
+	// managedproxylease.ObservedCountryValidator is a validator for the "observed_country" field. It is called by the builders before save.
+	managedproxylease.ObservedCountryValidator = managedproxyleaseDescObservedCountry.Validators[0].(func(string) error)
+	// managedproxyleaseDescObservedState is the schema descriptor for observed_state field.
+	managedproxyleaseDescObservedState := managedproxyleaseFields[14].Descriptor()
+	// managedproxylease.ObservedStateValidator is a validator for the "observed_state" field. It is called by the builders before save.
+	managedproxylease.ObservedStateValidator = managedproxyleaseDescObservedState.Validators[0].(func(string) error)
+	// managedproxyleaseDescObservedCity is the schema descriptor for observed_city field.
+	managedproxyleaseDescObservedCity := managedproxyleaseFields[15].Descriptor()
+	// managedproxylease.ObservedCityValidator is a validator for the "observed_city" field. It is called by the builders before save.
+	managedproxylease.ObservedCityValidator = managedproxyleaseDescObservedCity.Validators[0].(func(string) error)
+	// managedproxyleaseDescFailureCount is the schema descriptor for failure_count field.
+	managedproxyleaseDescFailureCount := managedproxyleaseFields[21].Descriptor()
+	// managedproxylease.DefaultFailureCount holds the default value on creation for the failure_count field.
+	managedproxylease.DefaultFailureCount = managedproxyleaseDescFailureCount.Default.(int)
+	// managedproxyleaseDescConsecutiveFailureCount is the schema descriptor for consecutive_failure_count field.
+	managedproxyleaseDescConsecutiveFailureCount := managedproxyleaseFields[22].Descriptor()
+	// managedproxylease.DefaultConsecutiveFailureCount holds the default value on creation for the consecutive_failure_count field.
+	managedproxylease.DefaultConsecutiveFailureCount = managedproxyleaseDescConsecutiveFailureCount.Default.(int)
 	paymentauditlogFields := schema.PaymentAuditLog{}.Fields()
 	_ = paymentauditlogFields
 	// paymentauditlogDescOrderID is the schema descriptor for order_id field.

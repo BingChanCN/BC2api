@@ -46,6 +46,17 @@ func NewOAuthHandler(oauthService *service.OAuthService) *OAuthHandler {
 }
 
 // AccountHandler handles admin account management
+type managedAccountProvisioner interface {
+	ValidateProviderForAssignment(context.Context, int64) error
+	Prepare(context.Context, int64, service.CatProxiesProxyTarget) (service.ManagedProxyCandidate, error)
+	Create(context.Context, *service.CreateAccountInput, service.ManagedProxyCandidate) (*service.Account, error)
+	GetManagedAccount(context.Context, int64) (*service.ManagedProxyAccountDTO, error)
+	ListManagedAccounts(context.Context) ([]service.ManagedProxyAccountDTO, error)
+	GetProviderForBackup(context.Context, int64) (*service.CatProxyProviderConfig, error)
+	RestoreProvider(context.Context, service.CatProxyProviderBackup) (*service.CatProxyProviderConfigDTO, error)
+	SetRestoredProviderStatus(context.Context, int64, string) error
+}
+
 type AccountHandler struct {
 	adminService            service.AdminService
 	oauthService            *service.OAuthService
@@ -64,6 +75,7 @@ type AccountHandler struct {
 	grokImportProber        grokImportProber
 	upstreamBillingProbe    *service.UpstreamBillingProbeService
 	ollamaCloudUsage        *service.OllamaCloudUsageService
+	managedAccountProvision managedAccountProvisioner
 }
 
 // SetUpstreamBillingProbeService attaches the optional remote billing probe service.
@@ -73,6 +85,10 @@ func (h *AccountHandler) SetUpstreamBillingProbeService(probe *service.UpstreamB
 
 func (h *AccountHandler) SetOllamaCloudUsageService(usage *service.OllamaCloudUsageService) {
 	h.ollamaCloudUsage = usage
+}
+
+func (h *AccountHandler) SetManagedAccountProvisionService(provision managedAccountProvisioner) {
+	h.managedAccountProvision = provision
 }
 
 // NewAccountHandler creates a new admin account handler
@@ -230,6 +246,17 @@ func (h *AccountHandler) buildAccountResponseWithRuntime(ctx context.Context, ac
 	}
 	if account == nil {
 		return item
+	}
+	if item.Account != nil && item.Account.Proxy != nil && h.managedAccountProvision != nil {
+		if _, err := h.managedAccountProvision.GetManagedAccount(ctx, account.ID); err == nil {
+			item.Account.Proxy.Name = ""
+			item.Account.Proxy.Username = ""
+		} else if !errors.Is(err, service.ErrManagedProxyLeaseNotFound) {
+			// Fail closed: a lease lookup failure must not expose a session embedded in the proxy name or username.
+			item.Account.Proxy.Name = ""
+			item.Account.Proxy.Username = ""
+			slog.Warn("managed_proxy_account_redaction_failed", "account_id", account.ID, "error", err)
+		}
 	}
 
 	if h.concurrencyService != nil {
@@ -646,6 +673,18 @@ func (h *AccountHandler) List(c *gin.Context) {
 		_ = g.Wait()
 	}
 
+	managedAccountIDs := make(map[int64]struct{})
+	if h.managedAccountProvision != nil {
+		managedAccounts, err := h.managedAccountProvision.ListManagedAccounts(c.Request.Context())
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		for i := range managedAccounts {
+			managedAccountIDs[managedAccounts[i].Lease.AccountID] = struct{}{}
+		}
+	}
+
 	// Build response with concurrency info
 	result := make([]AccountWithConcurrency, len(accounts))
 	for i := range accounts {
@@ -655,6 +694,10 @@ func (h *AccountHandler) List(c *gin.Context) {
 			CurrentConcurrency: concurrencyCounts[acc.ID],
 			SchedulerScore:     schedulerScores[acc.ID],
 			SchedulerScores:    schedulerGroupScores[acc.ID],
+		}
+		if _, managed := managedAccountIDs[acc.ID]; managed && item.Account != nil && item.Account.Proxy != nil {
+			item.Account.Proxy.Name = ""
+			item.Account.Proxy.Username = ""
 		}
 
 		// 添加窗口费用（仅当启用时）

@@ -155,6 +155,22 @@ func TestAdminService_BulkUpdateAccounts_AllSuccessIDs(t *testing.T) {
 	require.Len(t, result.Results, 3)
 }
 
+func TestAdminService_BulkUpdateAccountsRejectsManagedProxyMutationBeforeWrite(t *testing.T) {
+	proxyID := int64(99)
+	repo := &accountRepoStubForBulkUpdate{getByIDsAccounts: []*Account{{ID: 55}}}
+	leaseRepo := &catProxiesLeaseRepoStub{accountLease: &ManagedProxyLease{AccountID: 55, ProxyID: 77}}
+	svc := &adminServiceImpl{accountRepo: repo, managedProxyLeaseRepo: leaseRepo}
+
+	result, err := svc.BulkUpdateAccounts(context.Background(), &BulkUpdateAccountsInput{
+		AccountIDs: []int64{55},
+		ProxyID:    &proxyID,
+	})
+
+	require.Nil(t, result)
+	require.ErrorIs(t, err, ErrManagedProxyAccountProxyImmutable)
+	require.Empty(t, repo.bulkUpdateIDs)
+}
+
 func TestAdminService_BulkUpdateAccounts_RejectsRateChangeForSyncedAccounts(t *testing.T) {
 	repo := &accountRepoStubForBulkUpdate{
 		getByIDsAccounts: []*Account{

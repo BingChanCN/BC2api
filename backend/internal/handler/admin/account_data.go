@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"log/slog"
@@ -18,18 +21,22 @@ import (
 )
 
 const (
-	dataType       = "sub2api-data"
-	legacyDataType = "sub2api-bundle"
-	dataVersion    = 1
-	dataPageCap    = 1000
+	dataType              = "sub2api-data"
+	legacyDataType        = "sub2api-bundle"
+	dataVersion           = 1
+	managedDataType       = "sub2api-account-data"
+	managedDataVersion    = 2
+	managedImportParallel = 5
+	dataPageCap           = 1000
 )
 
 type DataPayload struct {
-	Type       string        `json:"type,omitempty"`
-	Version    int           `json:"version,omitempty"`
-	ExportedAt string        `json:"exported_at"`
-	Proxies    []DataProxy   `json:"proxies"`
-	Accounts   []DataAccount `json:"accounts"`
+	Type                  string                     `json:"type,omitempty"`
+	Version               int                        `json:"version,omitempty"`
+	ExportedAt            string                     `json:"exported_at"`
+	Proxies               []DataProxy                `json:"proxies"`
+	Accounts              []DataAccount              `json:"accounts"`
+	ManagedProxyProviders []DataManagedProxyProvider `json:"managed_proxy_providers,omitempty"`
 	// SkippedShadows 记录导出时被排除的 spark 影子账号数量(见 ExportData)。仅作可见性提示,
 	// 导入侧忽略该字段;omitempty 保持向后兼容。
 	SkippedShadows int `json:"skipped_shadows,omitempty"`
@@ -57,33 +64,77 @@ type DataProxy struct {
 // 排除(影子不持凭据、通用凭据型导入强制 credentials 非空无法重建父子链接),不在此表达。
 // 影子的独立调度配置(priority/并发/分组/status 管理员可单独调)亦不在本备份范围,属已知局限
 // (外审第6轮裁决:保持排除 + 前端警告,而非升级格式做完整往返)。
+type DataManagedProxyProvider struct {
+	ProviderKey     string  `json:"provider_key"`
+	Name            string  `json:"name"`
+	Protocol        string  `json:"protocol"`
+	Host            string  `json:"host"`
+	BaseUsername    string  `json:"base_username"`
+	Password        string  `json:"password"`
+	DefaultCountry  *string `json:"default_country,omitempty"`
+	DefaultState    *string `json:"default_state,omitempty"`
+	DefaultCity     *string `json:"default_city,omitempty"`
+	LifetimeMinutes int     `json:"lifetime_minutes"`
+	Strict          bool    `json:"strict"`
+	Status          string  `json:"status"`
+	IsDefault       bool    `json:"is_default,omitempty"`
+}
+
+type DataManagedProxyBinding struct {
+	ProviderKey string  `json:"provider_key"`
+	Country     *string `json:"country,omitempty"`
+	State       *string `json:"state,omitempty"`
+	City        *string `json:"city,omitempty"`
+	Strict      *bool   `json:"strict,omitempty"`
+}
+
 type DataAccount struct {
-	Name               string         `json:"name"`
-	Notes              *string        `json:"notes,omitempty"`
-	Platform           string         `json:"platform"`
-	Type               string         `json:"type"`
-	Credentials        map[string]any `json:"credentials"`
-	Extra              map[string]any `json:"extra,omitempty"`
-	ProxyKey           *string        `json:"proxy_key,omitempty"`
-	Concurrency        int            `json:"concurrency"`
-	Priority           int            `json:"priority"`
-	RateMultiplier     *float64       `json:"rate_multiplier,omitempty"`
-	ExpiresAt          *int64         `json:"expires_at,omitempty"`
-	AutoPauseOnExpired *bool          `json:"auto_pause_on_expired,omitempty"`
+	Name               string                   `json:"name"`
+	Notes              *string                  `json:"notes,omitempty"`
+	Platform           string                   `json:"platform"`
+	Type               string                   `json:"type"`
+	Credentials        map[string]any           `json:"credentials"`
+	Extra              map[string]any           `json:"extra,omitempty"`
+	ProxyKey           *string                  `json:"proxy_key,omitempty"`
+	Concurrency        int                      `json:"concurrency"`
+	Priority           int                      `json:"priority"`
+	RateMultiplier     *float64                 `json:"rate_multiplier,omitempty"`
+	ExpiresAt          *int64                   `json:"expires_at,omitempty"`
+	AutoPauseOnExpired *bool                    `json:"auto_pause_on_expired,omitempty"`
+	ManagedProxy       *DataManagedProxyBinding `json:"managed_proxy,omitempty"`
+}
+
+type DataManagedProxyAssignment struct {
+	ProviderConfigID int64   `json:"provider_config_id"`
+	Country          *string `json:"country,omitempty"`
+	State            *string `json:"state,omitempty"`
+	City             *string `json:"city,omitempty"`
+	Strict           *bool   `json:"strict,omitempty"`
 }
 
 type DataImportRequest struct {
-	Data                 DataPayload `json:"data"`
-	SkipDefaultGroupBind *bool       `json:"skip_default_group_bind"`
+	Data                   DataPayload                 `json:"data"`
+	SkipDefaultGroupBind   *bool                       `json:"skip_default_group_bind"`
+	ManagedProxyAssignment *DataManagedProxyAssignment `json:"managed_proxy_assignment,omitempty"`
 }
 
 type DataImportResult struct {
-	ProxyCreated   int               `json:"proxy_created"`
-	ProxyReused    int               `json:"proxy_reused"`
-	ProxyFailed    int               `json:"proxy_failed"`
-	AccountCreated int               `json:"account_created"`
-	AccountFailed  int               `json:"account_failed"`
-	Errors         []DataImportError `json:"errors,omitempty"`
+	ProxyCreated           int                       `json:"proxy_created"`
+	ProxyReused            int                       `json:"proxy_reused"`
+	ProxyFailed            int                       `json:"proxy_failed"`
+	AccountCreated         int                       `json:"account_created"`
+	AccountFailed          int                       `json:"account_failed"`
+	ManagedProviderCreated int                       `json:"managed_provider_created,omitempty"`
+	ManagedProviderFailed  int                       `json:"managed_provider_failed,omitempty"`
+	AccountResults         []DataAccountImportResult `json:"account_results,omitempty"`
+	Errors                 []DataImportError         `json:"errors,omitempty"`
+}
+
+type DataAccountImportResult struct {
+	Name    string `json:"name"`
+	Status  string `json:"status"`
+	Managed bool   `json:"managed"`
+	Message string `json:"message,omitempty"`
 }
 
 type DataImportError struct {
@@ -95,6 +146,10 @@ type DataImportError struct {
 
 func buildProxyKey(protocol, host string, port int, username, password string) string {
 	return fmt.Sprintf("%s|%s|%d|%s|%s", strings.TrimSpace(protocol), strings.TrimSpace(host), port, strings.TrimSpace(username), strings.TrimSpace(password))
+}
+
+func managedProviderKey(id int64) string {
+	return fmt.Sprintf("catproxies-%d", id)
 }
 
 func (h *AccountHandler) ExportData(c *gin.Context) {
@@ -136,6 +191,25 @@ func (h *AccountHandler) ExportData(c *gin.Context) {
 		return
 	}
 
+	managedByAccount := make(map[int64]*service.ManagedProxyAccountDTO)
+	managedProxyIDs := make(map[int64]struct{})
+	managedProviderIDs := make(map[int64]struct{})
+	if h.managedAccountProvision != nil {
+		for i := range accounts {
+			managed, managedErr := h.managedAccountProvision.GetManagedAccount(ctx, accounts[i].ID)
+			if managedErr != nil {
+				if errors.Is(managedErr, service.ErrManagedProxyLeaseNotFound) {
+					continue
+				}
+				response.ErrorFrom(c, managedErr)
+				return
+			}
+			managedByAccount[accounts[i].ID] = managed
+			managedProxyIDs[managed.Lease.ProxyID] = struct{}{}
+			managedProviderIDs[managed.Lease.ProviderConfigID] = struct{}{}
+		}
+	}
+
 	var proxies []service.Proxy
 	if includeProxies {
 		proxies, err = h.resolveExportProxies(ctx, accounts)
@@ -143,6 +217,14 @@ func (h *AccountHandler) ExportData(c *gin.Context) {
 			response.ErrorFrom(c, err)
 			return
 		}
+		staticProxies := proxies[:0]
+		for i := range proxies {
+			if _, managed := managedProxyIDs[proxies[i].ID]; managed {
+				continue
+			}
+			staticProxies = append(staticProxies, proxies[i])
+		}
+		proxies = staticProxies
 	} else {
 		proxies = []service.Proxy{}
 	}
@@ -194,6 +276,15 @@ func (h *AccountHandler) ExportData(c *gin.Context) {
 				proxyKey = &key
 			}
 		}
+		var managedBinding *DataManagedProxyBinding
+		if managed := managedByAccount[acc.ID]; managed != nil {
+			strict := managed.Lease.Strict
+			managedBinding = &DataManagedProxyBinding{
+				ProviderKey: managedProviderKey(managed.Lease.ProviderConfigID),
+				Country:     managed.Lease.TargetCountry, State: managed.Lease.TargetState,
+				City: managed.Lease.TargetCity, Strict: &strict,
+			}
+		}
 		var expiresAt *int64
 		if acc.ExpiresAt != nil {
 			v := acc.ExpiresAt.Unix()
@@ -212,14 +303,38 @@ func (h *AccountHandler) ExportData(c *gin.Context) {
 			RateMultiplier:     acc.RateMultiplier,
 			ExpiresAt:          expiresAt,
 			AutoPauseOnExpired: &acc.AutoPauseOnExpired,
+			ManagedProxy:       managedBinding,
 		})
 	}
 
+	managedProviders := make([]DataManagedProxyProvider, 0, len(managedProviderIDs))
+	for providerID := range managedProviderIDs {
+		provider, providerErr := h.managedAccountProvision.GetProviderForBackup(ctx, providerID)
+		if providerErr != nil {
+			response.ErrorFrom(c, providerErr)
+			return
+		}
+		managedProviders = append(managedProviders, DataManagedProxyProvider{
+			ProviderKey: managedProviderKey(provider.ID), Name: provider.Name,
+			Protocol: provider.Protocol, Host: provider.Host, BaseUsername: provider.BaseUsername,
+			Password: provider.Password, DefaultCountry: provider.DefaultCountry,
+			DefaultState: provider.DefaultState, DefaultCity: provider.DefaultCity,
+			LifetimeMinutes: provider.LifetimeMinutes, Strict: provider.Strict,
+			Status: provider.Status, IsDefault: provider.IsDefault,
+		})
+	}
+	sort.Slice(managedProviders, func(i, j int) bool { return managedProviders[i].ProviderKey < managedProviders[j].ProviderKey })
+
 	payload := DataPayload{
-		ExportedAt:     time.Now().UTC().Format(time.RFC3339),
-		Proxies:        dataProxies,
-		Accounts:       dataAccounts,
-		SkippedShadows: skippedShadows,
+		ExportedAt:            time.Now().UTC().Format(time.RFC3339),
+		Proxies:               dataProxies,
+		Accounts:              dataAccounts,
+		ManagedProxyProviders: managedProviders,
+		SkippedShadows:        skippedShadows,
+	}
+	if len(managedProviders) > 0 {
+		payload.Type = managedDataType
+		payload.Version = managedDataVersion
 	}
 
 	response.Success(c, payload)
@@ -250,6 +365,70 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 
 	dataPayload := req.Data
 	result := DataImportResult{}
+	providerKeyToID := make(map[string]int64, len(dataPayload.ManagedProxyProviders))
+	restoredProviderStatus := make(map[int64]string, len(dataPayload.ManagedProxyProviders))
+
+	managedAccountRequested := req.ManagedProxyAssignment != nil
+	if !managedAccountRequested {
+		for i := range dataPayload.Accounts {
+			if dataPayload.Accounts[i].ManagedProxy != nil {
+				managedAccountRequested = true
+				break
+			}
+		}
+	}
+	needsManagedProvisioning := managedAccountRequested || len(dataPayload.ManagedProxyProviders) > 0
+	if managedAccountRequested && len(dataPayload.Accounts) == 0 {
+		return result, infraerrors.BadRequest("MANAGED_IMPORT_SIZE_INVALID", "managed proxy imports require at least one account")
+	}
+	if needsManagedProvisioning && h.managedAccountProvision == nil {
+		return result, infraerrors.BadRequest("MANAGED_PROXY_NOT_CONFIGURED", "managed proxy provisioning is not configured")
+	}
+	if req.ManagedProxyAssignment != nil {
+		if err := h.managedAccountProvision.ValidateProviderForAssignment(ctx, req.ManagedProxyAssignment.ProviderConfigID); err != nil {
+			return result, err
+		}
+	}
+	providerSpecs := make(map[string]DataManagedProxyProvider, len(dataPayload.ManagedProxyProviders))
+	providerKeys := make([]string, 0, len(dataPayload.ManagedProxyProviders))
+	for i := range dataPayload.ManagedProxyProviders {
+		provider := dataPayload.ManagedProxyProviders[i]
+		key := strings.TrimSpace(provider.ProviderKey)
+		if key == "" {
+			result.ManagedProviderFailed++
+			result.Errors = append(result.Errors, DataImportError{Kind: "managed_provider", Name: provider.Name, Message: "provider_key is required"})
+			continue
+		}
+		provider.ProviderKey = key
+		if existing, ok := providerSpecs[key]; ok {
+			if !reflect.DeepEqual(existing, provider) {
+				return result, infraerrors.BadRequest("MANAGED_PROVIDER_KEY_CONFLICT", fmt.Sprintf("managed provider key %q has conflicting definitions", key))
+			}
+			continue
+		}
+		providerSpecs[key] = provider
+		providerKeys = append(providerKeys, key)
+	}
+	for _, providerKey := range providerKeys {
+		provider := providerSpecs[providerKey]
+		created, restoreErr := h.managedAccountProvision.RestoreProvider(ctx, service.CatProxyProviderBackup{
+			Name: provider.Name, Protocol: provider.Protocol, Host: provider.Host,
+			BaseUsername: provider.BaseUsername, Password: provider.Password,
+			DefaultCountry: provider.DefaultCountry, DefaultState: provider.DefaultState,
+			DefaultCity: provider.DefaultCity, LifetimeMinutes: provider.LifetimeMinutes,
+			Strict: provider.Strict, Status: provider.Status, IsDefault: provider.IsDefault,
+		})
+		if restoreErr != nil {
+			result.ManagedProviderFailed++
+			result.Errors = append(result.Errors, DataImportError{Kind: "managed_provider", Name: provider.Name, Message: restoreErr.Error()})
+			continue
+		}
+		providerKeyToID[providerKey] = created.ID
+		if provider.Status != "" && provider.Status != service.CatProxiesStatusActive {
+			restoredProviderStatus[created.ID] = provider.Status
+		}
+		result.ManagedProviderCreated++
+	}
 
 	existingProxies, err := h.listAllProxies(ctx)
 	if err != nil {
@@ -396,6 +575,52 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 		}
 	}
 
+	type managedPreparation struct {
+		requested bool
+		candidate service.ManagedProxyCandidate
+		err       error
+	}
+	managedPreparations := make([]managedPreparation, len(dataPayload.Accounts))
+	if managedAccountRequested {
+		semaphore := make(chan struct{}, managedImportParallel)
+		var prepareGroup sync.WaitGroup
+		for i := range dataPayload.Accounts {
+			item := dataPayload.Accounts[i]
+			if validateDataAccount(item) != nil || (item.ProxyKey != nil && *item.ProxyKey != "") {
+				continue
+			}
+			providerConfigID := int64(0)
+			target := service.CatProxiesProxyTarget{}
+			if item.ManagedProxy != nil {
+				providerConfigID = providerKeyToID[item.ManagedProxy.ProviderKey]
+				target = service.CatProxiesProxyTarget{Country: item.ManagedProxy.Country, State: item.ManagedProxy.State, City: item.ManagedProxy.City, Strict: item.ManagedProxy.Strict}
+			} else if req.ManagedProxyAssignment != nil {
+				providerConfigID = req.ManagedProxyAssignment.ProviderConfigID
+				target = service.CatProxiesProxyTarget{Country: req.ManagedProxyAssignment.Country, State: req.ManagedProxyAssignment.State, City: req.ManagedProxyAssignment.City, Strict: req.ManagedProxyAssignment.Strict}
+			} else {
+				continue
+			}
+			managedPreparations[i].requested = true
+			if providerConfigID == 0 {
+				managedPreparations[i].err = errors.New("managed proxy provider_key not found")
+				continue
+			}
+			prepareGroup.Add(1)
+			go func(index int, configID int64, requestedTarget service.CatProxiesProxyTarget) {
+				defer prepareGroup.Done()
+				select {
+				case semaphore <- struct{}{}:
+					defer func() { <-semaphore }()
+				case <-ctx.Done():
+					managedPreparations[index].err = ctx.Err()
+					return
+				}
+				managedPreparations[index].candidate, managedPreparations[index].err = h.managedAccountProvision.Prepare(ctx, configID, requestedTarget)
+			}(i, providerConfigID, target)
+		}
+		prepareGroup.Wait()
+	}
+
 	// 收集需要异步设置隐私的 Antigravity OAuth 账号
 	var privacyAccounts []*service.Account
 
@@ -403,6 +628,7 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 		item := dataPayload.Accounts[i]
 		if err := validateDataAccount(item); err != nil {
 			result.AccountFailed++
+			result.AccountResults = append(result.AccountResults, DataAccountImportResult{Name: item.Name, Status: "invalid", Message: err.Error()})
 			result.Errors = append(result.Errors, DataImportError{
 				Kind:    "account",
 				Name:    item.Name,
@@ -417,6 +643,7 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 				proxyID = &id
 			} else {
 				result.AccountFailed++
+				result.AccountResults = append(result.AccountResults, DataAccountImportResult{Name: item.Name, Status: "invalid", Message: "proxy_key not found"})
 				result.Errors = append(result.Errors, DataImportError{
 					Kind:     "account",
 					Name:     item.Name,
@@ -446,22 +673,52 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 			SkipDefaultGroupBind: skipDefaultGroupBind,
 		}
 
-		created, err := h.adminService.CreateAccount(ctx, accountInput)
-		if err != nil {
+		var created *service.Account
+		var createErr error
+		managedCreated := false
+		preparation := managedPreparations[i]
+		if proxyID == nil && preparation.requested {
+			candidate := preparation.candidate
+			createErr = preparation.err
+			if createErr == nil {
+				if desiredStatus := restoredProviderStatus[candidate.ProviderConfigID]; desiredStatus == service.CatProxiesStatusDisabled || desiredStatus == service.CatProxiesStatusCredentialError {
+					ready := false
+					candidate.InitialReady = &ready
+				}
+				created, createErr = h.managedAccountProvision.Create(ctx, accountInput, candidate)
+				managedCreated = createErr == nil
+			}
+		} else {
+			created, createErr = h.adminService.CreateAccount(ctx, accountInput)
+		}
+		if createErr != nil {
 			result.AccountFailed++
+			status := "failed"
+			if preparation.requested && preparation.err != nil {
+				status = "proxy_probe_failed"
+			}
+			result.AccountResults = append(result.AccountResults, DataAccountImportResult{Name: item.Name, Status: status, Managed: preparation.requested, Message: createErr.Error()})
 			result.Errors = append(result.Errors, DataImportError{
 				Kind:    "account",
 				Name:    item.Name,
-				Message: err.Error(),
+				Message: createErr.Error(),
 			})
 			continue
 		}
-		// 收集 Antigravity OAuth 账号，稍后异步设置隐私
-		if created.Platform == service.PlatformAntigravity && created.Type == service.AccountTypeOAuth {
+		// Managed provisioning bypasses AdminService.CreateAccount, so run the same
+		// post-commit privacy setup here for both supported OAuth platforms.
+		if created.Type == service.AccountTypeOAuth && (created.Platform == service.PlatformAntigravity || (managedCreated && created.Platform == service.PlatformOpenAI)) {
 			privacyAccounts = append(privacyAccounts, created)
 		}
 		h.scheduleGrokImportProbe(created)
 		result.AccountCreated++
+		result.AccountResults = append(result.AccountResults, DataAccountImportResult{Name: item.Name, Status: "created", Managed: managedCreated})
+	}
+
+	for providerID, status := range restoredProviderStatus {
+		if err := h.managedAccountProvision.SetRestoredProviderStatus(ctx, providerID, status); err != nil {
+			return result, err
+		}
 	}
 
 	// 异步设置 Antigravity 隐私，避免大量导入时阻塞请求
@@ -475,7 +732,12 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 			}()
 			bgCtx := context.Background()
 			for _, acc := range privacyAccounts {
-				adminSvc.ForceAntigravityPrivacy(bgCtx, acc)
+				switch acc.Platform {
+				case service.PlatformOpenAI:
+					adminSvc.EnsureOpenAIPrivacy(bgCtx, acc)
+				case service.PlatformAntigravity:
+					adminSvc.ForceAntigravityPrivacy(bgCtx, acc)
+				}
 			}
 			slog.Info("import_antigravity_privacy_done", "count", len(privacyAccounts))
 		}()
@@ -636,11 +898,17 @@ func parseIncludeProxies(c *gin.Context) (bool, error) {
 }
 
 func validateDataHeader(payload DataPayload) error {
-	if payload.Type != "" && payload.Type != dataType && payload.Type != legacyDataType {
-		return fmt.Errorf("unsupported data type: %s", payload.Type)
-	}
-	if payload.Version != 0 && payload.Version != dataVersion {
-		return fmt.Errorf("unsupported data version: %d", payload.Version)
+	if payload.Type == managedDataType {
+		if payload.Version != managedDataVersion {
+			return fmt.Errorf("unsupported managed data version: %d", payload.Version)
+		}
+	} else {
+		if payload.Type != "" && payload.Type != dataType && payload.Type != legacyDataType {
+			return fmt.Errorf("unsupported data type: %s", payload.Type)
+		}
+		if payload.Version != 0 && payload.Version != dataVersion {
+			return fmt.Errorf("unsupported data version: %d", payload.Version)
+		}
 	}
 	if payload.Proxies == nil {
 		return errors.New("proxies is required")

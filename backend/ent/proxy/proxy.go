@@ -47,6 +47,8 @@ const (
 	EdgeAccounts = "accounts"
 	// EdgeBackupProxy holds the string denoting the backup_proxy edge name in mutations.
 	EdgeBackupProxy = "backup_proxy"
+	// EdgeManagedProxyLeases holds the string denoting the managed_proxy_leases edge name in mutations.
+	EdgeManagedProxyLeases = "managed_proxy_leases"
 	// Table holds the table name of the proxy in the database.
 	Table = "proxies"
 	// AccountsTable is the table that holds the accounts relation/edge.
@@ -60,6 +62,13 @@ const (
 	BackupProxyTable = "proxies"
 	// BackupProxyColumn is the table column denoting the backup_proxy relation/edge.
 	BackupProxyColumn = "backup_proxy_id"
+	// ManagedProxyLeasesTable is the table that holds the managed_proxy_leases relation/edge.
+	ManagedProxyLeasesTable = "managed_proxy_leases"
+	// ManagedProxyLeasesInverseTable is the table name for the ManagedProxyLease entity.
+	// It exists in this package in order to avoid circular dependency with the "managedproxylease" package.
+	ManagedProxyLeasesInverseTable = "managed_proxy_leases"
+	// ManagedProxyLeasesColumn is the table column denoting the managed_proxy_leases relation/edge.
+	ManagedProxyLeasesColumn = "proxy_id"
 )
 
 // Columns holds all SQL columns for proxy fields.
@@ -225,6 +234,20 @@ func ByBackupProxyField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newBackupProxyStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByManagedProxyLeasesCount orders the results by managed_proxy_leases count.
+func ByManagedProxyLeasesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newManagedProxyLeasesStep(), opts...)
+	}
+}
+
+// ByManagedProxyLeases orders the results by managed_proxy_leases terms.
+func ByManagedProxyLeases(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newManagedProxyLeasesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAccountsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -237,5 +260,12 @@ func newBackupProxyStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(Table, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, BackupProxyTable, BackupProxyColumn),
+	)
+}
+func newManagedProxyLeasesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ManagedProxyLeasesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ManagedProxyLeasesTable, ManagedProxyLeasesColumn),
 	)
 }

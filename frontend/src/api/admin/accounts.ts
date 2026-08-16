@@ -665,11 +665,19 @@ export async function exportData(options?: {
 export async function importData(payload: {
   data: AdminDataPayload
   skip_default_group_bind?: boolean
+  managed_proxy_assignment?: {
+    provider_config_id: number
+    country?: string | null
+    state?: string | null
+    city?: string | null
+    strict?: boolean
+  }
 }): Promise<AdminDataImportResult> {
   const { data } = await apiClient.post<AdminDataImportResult>('/admin/accounts/data', {
     data: payload.data,
-    skip_default_group_bind: payload.skip_default_group_bind
-  })
+    skip_default_group_bind: payload.skip_default_group_bind,
+    managed_proxy_assignment: payload.managed_proxy_assignment
+  }, { timeout: 180000 })
   return data
 }
 

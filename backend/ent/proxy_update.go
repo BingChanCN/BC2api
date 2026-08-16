@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/account"
+	"github.com/Wei-Shaw/sub2api/ent/managedproxylease"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 )
@@ -267,6 +268,21 @@ func (_u *ProxyUpdate) SetBackupProxy(v *Proxy) *ProxyUpdate {
 	return _u.SetBackupProxyID(v.ID)
 }
 
+// AddManagedProxyLeaseIDs adds the "managed_proxy_leases" edge to the ManagedProxyLease entity by IDs.
+func (_u *ProxyUpdate) AddManagedProxyLeaseIDs(ids ...int64) *ProxyUpdate {
+	_u.mutation.AddManagedProxyLeaseIDs(ids...)
+	return _u
+}
+
+// AddManagedProxyLeases adds the "managed_proxy_leases" edges to the ManagedProxyLease entity.
+func (_u *ProxyUpdate) AddManagedProxyLeases(v ...*ManagedProxyLease) *ProxyUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddManagedProxyLeaseIDs(ids...)
+}
+
 // Mutation returns the ProxyMutation object of the builder.
 func (_u *ProxyUpdate) Mutation() *ProxyMutation {
 	return _u.mutation
@@ -297,6 +313,27 @@ func (_u *ProxyUpdate) RemoveAccounts(v ...*Account) *ProxyUpdate {
 func (_u *ProxyUpdate) ClearBackupProxy() *ProxyUpdate {
 	_u.mutation.ClearBackupProxy()
 	return _u
+}
+
+// ClearManagedProxyLeases clears all "managed_proxy_leases" edges to the ManagedProxyLease entity.
+func (_u *ProxyUpdate) ClearManagedProxyLeases() *ProxyUpdate {
+	_u.mutation.ClearManagedProxyLeases()
+	return _u
+}
+
+// RemoveManagedProxyLeaseIDs removes the "managed_proxy_leases" edge to ManagedProxyLease entities by IDs.
+func (_u *ProxyUpdate) RemoveManagedProxyLeaseIDs(ids ...int64) *ProxyUpdate {
+	_u.mutation.RemoveManagedProxyLeaseIDs(ids...)
+	return _u
+}
+
+// RemoveManagedProxyLeases removes "managed_proxy_leases" edges to ManagedProxyLease entities.
+func (_u *ProxyUpdate) RemoveManagedProxyLeases(v ...*ManagedProxyLease) *ProxyUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveManagedProxyLeaseIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -514,6 +551,51 @@ func (_u *ProxyUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(proxy.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ManagedProxyLeasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   proxy.ManagedProxyLeasesTable,
+			Columns: []string{proxy.ManagedProxyLeasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedManagedProxyLeasesIDs(); len(nodes) > 0 && !_u.mutation.ManagedProxyLeasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   proxy.ManagedProxyLeasesTable,
+			Columns: []string{proxy.ManagedProxyLeasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ManagedProxyLeasesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   proxy.ManagedProxyLeasesTable,
+			Columns: []string{proxy.ManagedProxyLeasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -779,6 +861,21 @@ func (_u *ProxyUpdateOne) SetBackupProxy(v *Proxy) *ProxyUpdateOne {
 	return _u.SetBackupProxyID(v.ID)
 }
 
+// AddManagedProxyLeaseIDs adds the "managed_proxy_leases" edge to the ManagedProxyLease entity by IDs.
+func (_u *ProxyUpdateOne) AddManagedProxyLeaseIDs(ids ...int64) *ProxyUpdateOne {
+	_u.mutation.AddManagedProxyLeaseIDs(ids...)
+	return _u
+}
+
+// AddManagedProxyLeases adds the "managed_proxy_leases" edges to the ManagedProxyLease entity.
+func (_u *ProxyUpdateOne) AddManagedProxyLeases(v ...*ManagedProxyLease) *ProxyUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddManagedProxyLeaseIDs(ids...)
+}
+
 // Mutation returns the ProxyMutation object of the builder.
 func (_u *ProxyUpdateOne) Mutation() *ProxyMutation {
 	return _u.mutation
@@ -809,6 +906,27 @@ func (_u *ProxyUpdateOne) RemoveAccounts(v ...*Account) *ProxyUpdateOne {
 func (_u *ProxyUpdateOne) ClearBackupProxy() *ProxyUpdateOne {
 	_u.mutation.ClearBackupProxy()
 	return _u
+}
+
+// ClearManagedProxyLeases clears all "managed_proxy_leases" edges to the ManagedProxyLease entity.
+func (_u *ProxyUpdateOne) ClearManagedProxyLeases() *ProxyUpdateOne {
+	_u.mutation.ClearManagedProxyLeases()
+	return _u
+}
+
+// RemoveManagedProxyLeaseIDs removes the "managed_proxy_leases" edge to ManagedProxyLease entities by IDs.
+func (_u *ProxyUpdateOne) RemoveManagedProxyLeaseIDs(ids ...int64) *ProxyUpdateOne {
+	_u.mutation.RemoveManagedProxyLeaseIDs(ids...)
+	return _u
+}
+
+// RemoveManagedProxyLeases removes "managed_proxy_leases" edges to ManagedProxyLease entities.
+func (_u *ProxyUpdateOne) RemoveManagedProxyLeases(v ...*ManagedProxyLease) *ProxyUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveManagedProxyLeaseIDs(ids...)
 }
 
 // Where appends a list predicates to the ProxyUpdate builder.
@@ -1056,6 +1174,51 @@ func (_u *ProxyUpdateOne) sqlSave(ctx context.Context) (_node *Proxy, err error)
 			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(proxy.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ManagedProxyLeasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   proxy.ManagedProxyLeasesTable,
+			Columns: []string{proxy.ManagedProxyLeasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedManagedProxyLeasesIDs(); len(nodes) > 0 && !_u.mutation.ManagedProxyLeasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   proxy.ManagedProxyLeasesTable,
+			Columns: []string{proxy.ManagedProxyLeasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ManagedProxyLeasesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   proxy.ManagedProxyLeasesTable,
+			Columns: []string{proxy.ManagedProxyLeasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

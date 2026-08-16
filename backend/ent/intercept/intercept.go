@@ -18,6 +18,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/batchimageevent"
 	"github.com/Wei-Shaw/sub2api/ent/batchimageitem"
 	"github.com/Wei-Shaw/sub2api/ent/batchimagejob"
+	"github.com/Wei-Shaw/sub2api/ent/catproxyproviderconfig"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitor"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitordailyrollup"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorhistory"
@@ -27,6 +28,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
+	"github.com/Wei-Shaw/sub2api/ent/managedproxylease"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -376,6 +378,33 @@ func (f TraverseBatchImageJob) Traverse(ctx context.Context, q ent.Query) error 
 	return fmt.Errorf("unexpected query type %T. expect *ent.BatchImageJobQuery", q)
 }
 
+// The CatProxyProviderConfigFunc type is an adapter to allow the use of ordinary function as a Querier.
+type CatProxyProviderConfigFunc func(context.Context, *ent.CatProxyProviderConfigQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f CatProxyProviderConfigFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.CatProxyProviderConfigQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.CatProxyProviderConfigQuery", q)
+}
+
+// The TraverseCatProxyProviderConfig type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseCatProxyProviderConfig func(context.Context, *ent.CatProxyProviderConfigQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseCatProxyProviderConfig) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseCatProxyProviderConfig) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.CatProxyProviderConfigQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.CatProxyProviderConfigQuery", q)
+}
+
 // The ChannelMonitorFunc type is an adapter to allow the use of ordinary function as a Querier.
 type ChannelMonitorFunc func(context.Context, *ent.ChannelMonitorQuery) (ent.Value, error)
 
@@ -617,6 +646,33 @@ func (f TraverseIdentityAdoptionDecision) Traverse(ctx context.Context, q ent.Qu
 		return f(ctx, q)
 	}
 	return fmt.Errorf("unexpected query type %T. expect *ent.IdentityAdoptionDecisionQuery", q)
+}
+
+// The ManagedProxyLeaseFunc type is an adapter to allow the use of ordinary function as a Querier.
+type ManagedProxyLeaseFunc func(context.Context, *ent.ManagedProxyLeaseQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f ManagedProxyLeaseFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.ManagedProxyLeaseQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.ManagedProxyLeaseQuery", q)
+}
+
+// The TraverseManagedProxyLease type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseManagedProxyLease func(context.Context, *ent.ManagedProxyLeaseQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseManagedProxyLease) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseManagedProxyLease) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.ManagedProxyLeaseQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.ManagedProxyLeaseQuery", q)
 }
 
 // The PaymentAuditLogFunc type is an adapter to allow the use of ordinary function as a Querier.
@@ -1182,6 +1238,8 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.BatchImageItemQuery, predicate.BatchImageItem, batchimageitem.OrderOption]{typ: ent.TypeBatchImageItem, tq: q}, nil
 	case *ent.BatchImageJobQuery:
 		return &query[*ent.BatchImageJobQuery, predicate.BatchImageJob, batchimagejob.OrderOption]{typ: ent.TypeBatchImageJob, tq: q}, nil
+	case *ent.CatProxyProviderConfigQuery:
+		return &query[*ent.CatProxyProviderConfigQuery, predicate.CatProxyProviderConfig, catproxyproviderconfig.OrderOption]{typ: ent.TypeCatProxyProviderConfig, tq: q}, nil
 	case *ent.ChannelMonitorQuery:
 		return &query[*ent.ChannelMonitorQuery, predicate.ChannelMonitor, channelmonitor.OrderOption]{typ: ent.TypeChannelMonitor, tq: q}, nil
 	case *ent.ChannelMonitorDailyRollupQuery:
@@ -1200,6 +1258,8 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.IdempotencyRecordQuery, predicate.IdempotencyRecord, idempotencyrecord.OrderOption]{typ: ent.TypeIdempotencyRecord, tq: q}, nil
 	case *ent.IdentityAdoptionDecisionQuery:
 		return &query[*ent.IdentityAdoptionDecisionQuery, predicate.IdentityAdoptionDecision, identityadoptiondecision.OrderOption]{typ: ent.TypeIdentityAdoptionDecision, tq: q}, nil
+	case *ent.ManagedProxyLeaseQuery:
+		return &query[*ent.ManagedProxyLeaseQuery, predicate.ManagedProxyLease, managedproxylease.OrderOption]{typ: ent.TypeManagedProxyLease, tq: q}, nil
 	case *ent.PaymentAuditLogQuery:
 		return &query[*ent.PaymentAuditLogQuery, predicate.PaymentAuditLog, paymentauditlog.OrderOption]{typ: ent.TypePaymentAuditLog, tq: q}, nil
 	case *ent.PaymentOrderQuery:

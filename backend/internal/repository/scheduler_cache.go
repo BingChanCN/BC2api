@@ -877,6 +877,7 @@ func buildSchedulerMetadataAccount(account service.Account) service.Account {
 		ExpiresAt:               account.ExpiresAt,
 		AutoPauseOnExpired:      account.AutoPauseOnExpired,
 		Schedulable:             account.Schedulable,
+		ManagedProxyReady:       account.ManagedProxyReady,
 		RateLimitedAt:           account.RateLimitedAt,
 		RateLimitResetAt:        account.RateLimitResetAt,
 		OverloadUntil:           account.OverloadUntil,

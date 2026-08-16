@@ -58,6 +58,8 @@ const (
 	FieldAutoPauseOnExpired = "auto_pause_on_expired"
 	// FieldSchedulable holds the string denoting the schedulable field in the database.
 	FieldSchedulable = "schedulable"
+	// FieldManagedProxyReady holds the string denoting the managed_proxy_ready field in the database.
+	FieldManagedProxyReady = "managed_proxy_ready"
 	// FieldRateLimitedAt holds the string denoting the rate_limited_at field in the database.
 	FieldRateLimitedAt = "rate_limited_at"
 	// FieldRateLimitResetAt holds the string denoting the rate_limit_reset_at field in the database.
@@ -88,6 +90,8 @@ const (
 	EdgeChildren = "children"
 	// EdgeUsageLogs holds the string denoting the usage_logs edge name in mutations.
 	EdgeUsageLogs = "usage_logs"
+	// EdgeManagedProxyLease holds the string denoting the managed_proxy_lease edge name in mutations.
+	EdgeManagedProxyLease = "managed_proxy_lease"
 	// EdgeAccountGroups holds the string denoting the account_groups edge name in mutations.
 	EdgeAccountGroups = "account_groups"
 	// Table holds the table name of the account in the database.
@@ -119,6 +123,13 @@ const (
 	UsageLogsInverseTable = "usage_logs"
 	// UsageLogsColumn is the table column denoting the usage_logs relation/edge.
 	UsageLogsColumn = "account_id"
+	// ManagedProxyLeaseTable is the table that holds the managed_proxy_lease relation/edge.
+	ManagedProxyLeaseTable = "managed_proxy_leases"
+	// ManagedProxyLeaseInverseTable is the table name for the ManagedProxyLease entity.
+	// It exists in this package in order to avoid circular dependency with the "managedproxylease" package.
+	ManagedProxyLeaseInverseTable = "managed_proxy_leases"
+	// ManagedProxyLeaseColumn is the table column denoting the managed_proxy_lease relation/edge.
+	ManagedProxyLeaseColumn = "account_id"
 	// AccountGroupsTable is the table that holds the account_groups relation/edge.
 	AccountGroupsTable = "account_groups"
 	// AccountGroupsInverseTable is the table name for the AccountGroup entity.
@@ -152,6 +163,7 @@ var Columns = []string{
 	FieldExpiresAt,
 	FieldAutoPauseOnExpired,
 	FieldSchedulable,
+	FieldManagedProxyReady,
 	FieldRateLimitedAt,
 	FieldRateLimitResetAt,
 	FieldOverloadUntil,
@@ -218,6 +230,8 @@ var (
 	DefaultAutoPauseOnExpired bool
 	// DefaultSchedulable holds the default value on creation for the "schedulable" field.
 	DefaultSchedulable bool
+	// DefaultManagedProxyReady holds the default value on creation for the "managed_proxy_ready" field.
+	DefaultManagedProxyReady bool
 	// SessionWindowStatusValidator is a validator for the "session_window_status" field. It is called by the builders before save.
 	SessionWindowStatusValidator func(string) error
 )
@@ -351,6 +365,11 @@ func BySchedulable(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSchedulable, opts...).ToFunc()
 }
 
+// ByManagedProxyReady orders the results by the managed_proxy_ready field.
+func ByManagedProxyReady(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldManagedProxyReady, opts...).ToFunc()
+}
+
 // ByRateLimitedAt orders the results by the rate_limited_at field.
 func ByRateLimitedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRateLimitedAt, opts...).ToFunc()
@@ -457,6 +476,13 @@ func ByUsageLogs(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByManagedProxyLeaseField orders the results by managed_proxy_lease field.
+func ByManagedProxyLeaseField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newManagedProxyLeaseStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByAccountGroupsCount orders the results by account_groups count.
 func ByAccountGroupsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -503,6 +529,13 @@ func newUsageLogsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UsageLogsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, UsageLogsTable, UsageLogsColumn),
+	)
+}
+func newManagedProxyLeaseStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ManagedProxyLeaseInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ManagedProxyLeaseTable, ManagedProxyLeaseColumn),
 	)
 }
 func newAccountGroupsStep() *sqlgraph.Step {

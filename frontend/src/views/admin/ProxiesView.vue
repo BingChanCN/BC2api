@@ -1,5 +1,18 @@
 <template>
   <AppLayout>
+    <div class="border-b border-gray-200 bg-white px-4 dark:border-dark-700 dark:bg-dark-900 sm:px-6">
+      <nav class="flex gap-6" aria-label="Proxy mode">
+        <button type="button" class="border-b-2 px-1 py-3 text-sm font-medium" :class="activeProxyTab === 'static' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-dark-300'" @click="activeProxyTab = 'static'">
+          {{ t('admin.proxies.tabs.static') }}
+        </button>
+        <button type="button" class="border-b-2 px-1 py-3 text-sm font-medium" :class="activeProxyTab === 'managed' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-dark-300'" @click="activeProxyTab = 'managed'">
+          {{ t('admin.proxies.tabs.managed') }}
+        </button>
+      </nav>
+    </div>
+
+    <ManagedProxiesPanel v-if="activeProxyTab === 'managed'" />
+    <template v-else>
     <TablePageLayout>
       <template #filters>
         <div class="flex flex-wrap items-center gap-3">
@@ -960,6 +973,7 @@
         </div>
       </template>
     </BaseDialog>
+    </template>
   </AppLayout>
 </template>
 
@@ -978,6 +992,7 @@ import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ImportDataModal from '@/components/admin/proxy/ImportDataModal.vue'
+import ManagedProxiesPanel from '@/components/admin/proxy/ManagedProxiesPanel.vue'
 import Select from '@/components/common/Select.vue'
 import ProxyAdBanner from '@/components/common/ProxyAdBanner.vue'
 import Icon from '@/components/icons/Icon.vue'
@@ -990,6 +1005,7 @@ import { formatDateTime } from '@/utils/format'
 import { proxyExpiryBadgeClass, proxyExpiryLabelKey } from '@/utils/proxyExpiry'
 
 const { t } = useI18n()
+const activeProxyTab = ref<'static' | 'managed'>('static')
 const appStore = useAppStore()
 const { copyToClipboard } = useClipboard()
 

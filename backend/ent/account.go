@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/Wei-Shaw/sub2api/ent/account"
+	"github.com/Wei-Shaw/sub2api/ent/managedproxylease"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 )
 
@@ -61,6 +62,8 @@ type Account struct {
 	AutoPauseOnExpired bool `json:"auto_pause_on_expired,omitempty"`
 	// Schedulable holds the value of the "schedulable" field.
 	Schedulable bool `json:"schedulable,omitempty"`
+	// ManagedProxyReady holds the value of the "managed_proxy_ready" field.
+	ManagedProxyReady bool `json:"managed_proxy_ready,omitempty"`
 	// RateLimitedAt holds the value of the "rate_limited_at" field.
 	RateLimitedAt *time.Time `json:"rate_limited_at,omitempty"`
 	// RateLimitResetAt holds the value of the "rate_limit_reset_at" field.
@@ -99,11 +102,13 @@ type AccountEdges struct {
 	Children []*Account `json:"children,omitempty"`
 	// UsageLogs holds the value of the usage_logs edge.
 	UsageLogs []*UsageLog `json:"usage_logs,omitempty"`
+	// ManagedProxyLease holds the value of the managed_proxy_lease edge.
+	ManagedProxyLease *ManagedProxyLease `json:"managed_proxy_lease,omitempty"`
 	// AccountGroups holds the value of the account_groups edge.
 	AccountGroups []*AccountGroup `json:"account_groups,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [7]bool
 }
 
 // GroupsOrErr returns the Groups value or an error if the edge
@@ -155,10 +160,21 @@ func (e AccountEdges) UsageLogsOrErr() ([]*UsageLog, error) {
 	return nil, &NotLoadedError{edge: "usage_logs"}
 }
 
+// ManagedProxyLeaseOrErr returns the ManagedProxyLease value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e AccountEdges) ManagedProxyLeaseOrErr() (*ManagedProxyLease, error) {
+	if e.ManagedProxyLease != nil {
+		return e.ManagedProxyLease, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: managedproxylease.Label}
+	}
+	return nil, &NotLoadedError{edge: "managed_proxy_lease"}
+}
+
 // AccountGroupsOrErr returns the AccountGroups value or an error if the edge
 // was not loaded in eager-loading.
 func (e AccountEdges) AccountGroupsOrErr() ([]*AccountGroup, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.AccountGroups, nil
 	}
 	return nil, &NotLoadedError{edge: "account_groups"}
@@ -171,7 +187,7 @@ func (*Account) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case account.FieldCredentials, account.FieldExtra:
 			values[i] = new([]byte)
-		case account.FieldAutoPauseOnExpired, account.FieldSchedulable:
+		case account.FieldAutoPauseOnExpired, account.FieldSchedulable, account.FieldManagedProxyReady:
 			values[i] = new(sql.NullBool)
 		case account.FieldRateMultiplier:
 			values[i] = new(sql.NullFloat64)
@@ -340,6 +356,12 @@ func (_m *Account) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Schedulable = value.Bool
 			}
+		case account.FieldManagedProxyReady:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field managed_proxy_ready", values[i])
+			} else if value.Valid {
+				_m.ManagedProxyReady = value.Bool
+			}
 		case account.FieldRateLimitedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field rate_limited_at", values[i])
@@ -445,6 +467,11 @@ func (_m *Account) QueryChildren() *AccountQuery {
 // QueryUsageLogs queries the "usage_logs" edge of the Account entity.
 func (_m *Account) QueryUsageLogs() *UsageLogQuery {
 	return NewAccountClient(_m.config).QueryUsageLogs(_m)
+}
+
+// QueryManagedProxyLease queries the "managed_proxy_lease" edge of the Account entity.
+func (_m *Account) QueryManagedProxyLease() *ManagedProxyLeaseQuery {
+	return NewAccountClient(_m.config).QueryManagedProxyLease(_m)
 }
 
 // QueryAccountGroups queries the "account_groups" edge of the Account entity.
@@ -553,6 +580,9 @@ func (_m *Account) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("schedulable=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Schedulable))
+	builder.WriteString(", ")
+	builder.WriteString("managed_proxy_ready=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ManagedProxyReady))
 	builder.WriteString(", ")
 	if v := _m.RateLimitedAt; v != nil {
 		builder.WriteString("rate_limited_at=")

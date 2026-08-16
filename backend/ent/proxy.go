@@ -57,9 +57,11 @@ type ProxyEdges struct {
 	Accounts []*Account `json:"accounts,omitempty"`
 	// BackupProxy holds the value of the backup_proxy edge.
 	BackupProxy *Proxy `json:"backup_proxy,omitempty"`
+	// ManagedProxyLeases holds the value of the managed_proxy_leases edge.
+	ManagedProxyLeases []*ManagedProxyLease `json:"managed_proxy_leases,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // AccountsOrErr returns the Accounts value or an error if the edge
@@ -80,6 +82,15 @@ func (e ProxyEdges) BackupProxyOrErr() (*Proxy, error) {
 		return nil, &NotFoundError{label: proxy.Label}
 	}
 	return nil, &NotLoadedError{edge: "backup_proxy"}
+}
+
+// ManagedProxyLeasesOrErr returns the ManagedProxyLeases value or an error if the edge
+// was not loaded in eager-loading.
+func (e ProxyEdges) ManagedProxyLeasesOrErr() ([]*ManagedProxyLease, error) {
+	if e.loadedTypes[2] {
+		return e.ManagedProxyLeases, nil
+	}
+	return nil, &NotLoadedError{edge: "managed_proxy_leases"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -224,6 +235,11 @@ func (_m *Proxy) QueryAccounts() *AccountQuery {
 // QueryBackupProxy queries the "backup_proxy" edge of the Proxy entity.
 func (_m *Proxy) QueryBackupProxy() *ProxyQuery {
 	return NewProxyClient(_m.config).QueryBackupProxy(_m)
+}
+
+// QueryManagedProxyLeases queries the "managed_proxy_leases" edge of the Proxy entity.
+func (_m *Proxy) QueryManagedProxyLeases() *ManagedProxyLeaseQuery {
+	return NewProxyClient(_m.config).QueryManagedProxyLeases(_m)
 }
 
 // Update returns a builder for updating this Proxy.

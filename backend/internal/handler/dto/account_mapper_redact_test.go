@@ -9,6 +9,24 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/service"
 )
 
+func TestAccountFromService_RedactsManagedProxyIdentity(t *testing.T) {
+	managed := &service.Account{ID: 1, Proxy: &service.Proxy{
+		ID: 77, Name: "catproxies-7-managed", Username: "customer-session-secret", Managed: true,
+	}}
+	got := AccountFromService(managed)
+	require.NotNil(t, got)
+	require.NotNil(t, got.Proxy)
+	require.Empty(t, got.Proxy.Name)
+	require.Empty(t, got.Proxy.Username)
+
+	static := &service.Account{ID: 2, Proxy: &service.Proxy{
+		ID: 78, Name: "catproxies-7-managed", Username: "visible-static-user",
+	}}
+	got = AccountFromService(static)
+	require.Equal(t, "catproxies-7-managed", got.Proxy.Name)
+	require.Equal(t, "visible-static-user", got.Proxy.Username)
+}
+
 func TestAccountFromServiceShallow_RedactsSensitiveCredentials(t *testing.T) {
 	src := &service.Account{
 		ID:       42,

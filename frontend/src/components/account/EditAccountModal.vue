@@ -1446,7 +1446,8 @@
           <label class="input-label mb-0">{{ t('admin.accounts.proxy') }}</label>
           <ProxyAdBanner />
         </div>
-        <ProxySelector v-model="form.proxy_id" :proxies="proxies" />
+        <ProxySelector v-model="form.proxy_id" :proxies="proxies" :disabled="proxyLocked" />
+        <p v-if="proxyLocked" class="mt-1 text-xs text-gray-500 dark:text-dark-400">{{ t('admin.accounts.managedProxy.editLocked') }}</p>
       </div>
 
       <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -2780,9 +2781,10 @@ interface Props {
   account: Account | null
   proxies: Proxy[]
   groups: AdminGroup[]
+  proxyLocked?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { proxyLocked: false })
 const emit = defineEmits<{
   close: []
   updated: [account: Account]
@@ -4264,8 +4266,11 @@ const handleSubmit = async () => {
 
   const updatePayload: Record<string, unknown> = { ...form }
   try {
-    // 后端期望 proxy_id: 0 表示清除代理，而不是 null
-    if (updatePayload.proxy_id === null) {
+    // 受管代理只能通过专用迁移/退出命令修改；普通编辑不发送 proxy_id。
+    if (props.proxyLocked) {
+      delete updatePayload.proxy_id
+    } else if (updatePayload.proxy_id === null) {
+      // 后端期望 proxy_id: 0 表示清除代理，而不是 null
       updatePayload.proxy_id = 0
     }
     if (form.expires_at === null) {

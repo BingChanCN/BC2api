@@ -68,6 +68,8 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		accountExpirySvc,
 		codexVersionSyncSvc,
 		proxyExpirySvc,
+		nil, // catProxiesRotation
+		nil, // managedProxyTransportHook
 		subscriptionExpirySvc,
 		&service.UsageCleanupService{},
 		idempotencyCleanupSvc,

@@ -22,6 +22,45 @@ func setupAccountListRouter() (*gin.Engine, *stubAdminService) {
 	return router, adminSvc
 }
 
+func TestAccountHandlerListRedactsManagedProxySessionFields(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	adminSvc := newStubAdminService()
+	now := time.Now().UTC()
+	adminSvc.accounts = []service.Account{{
+		ID: 71, Name: "managed", Platform: service.PlatformOpenAI, Type: service.AccountTypeOAuth,
+		Status: service.StatusActive, Schedulable: true, CreatedAt: now, UpdatedAt: now,
+		Proxy: &service.Proxy{ID: 81, Name: "catproxies-3-secret-session", Protocol: "http", Host: "proxy.example.com", Port: 10000, Username: "customer-session-secret", Password: "password"},
+	}}
+	managed := &managedAccountProvisionStub{managedByAccount: map[int64]*service.ManagedProxyAccountDTO{71: {Lease: service.ManagedProxyLease{AccountID: 71, ProxyID: 81}}}}
+	handler := NewAccountHandler(adminSvc, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	handler.SetManagedAccountProvisionService(managed)
+	router.GET("/api/v1/admin/accounts", handler.List)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/accounts?page=1&page_size=20", nil)
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var payload struct {
+		Data struct {
+			Items []struct {
+				Proxy *struct {
+					Name     string `json:"name"`
+					Username string `json:"username"`
+				} `json:"proxy"`
+			} `json:"items"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &payload))
+	require.Len(t, payload.Data.Items, 1)
+	require.NotNil(t, payload.Data.Items[0].Proxy)
+	require.Empty(t, payload.Data.Items[0].Proxy.Name)
+	require.Empty(t, payload.Data.Items[0].Proxy.Username)
+	require.NotContains(t, rec.Body.String(), "secret-session")
+	require.NotContains(t, rec.Body.String(), "password")
+}
+
 func TestAccountHandlerListIncludesCreatedAt(t *testing.T) {
 	router, adminSvc := setupAccountListRouter()
 

@@ -116,6 +116,7 @@ var (
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "auto_pause_on_expired", Type: field.TypeBool, Default: true},
 		{Name: "schedulable", Type: field.TypeBool, Default: true},
+		{Name: "managed_proxy_ready", Type: field.TypeBool, Default: true},
 		{Name: "rate_limited_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "rate_limit_reset_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "overload_until", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
@@ -136,13 +137,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "accounts_proxies_proxy",
-				Columns:    []*schema.Column{AccountsColumns[30]},
+				Columns:    []*schema.Column{AccountsColumns[31]},
 				RefColumns: []*schema.Column{ProxiesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "accounts_accounts_children",
-				Columns:    []*schema.Column{AccountsColumns[31]},
+				Columns:    []*schema.Column{AccountsColumns[32]},
 				RefColumns: []*schema.Column{AccountsColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
@@ -166,7 +167,7 @@ var (
 			{
 				Name:    "account_proxy_id",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[30]},
+				Columns: []*schema.Column{AccountsColumns[31]},
 			},
 			{
 				Name:    "account_priority",
@@ -186,17 +187,17 @@ var (
 			{
 				Name:    "account_rate_limited_at",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[21]},
+				Columns: []*schema.Column{AccountsColumns[22]},
 			},
 			{
 				Name:    "account_rate_limit_reset_at",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[22]},
+				Columns: []*schema.Column{AccountsColumns[23]},
 			},
 			{
 				Name:    "account_overload_until",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[23]},
+				Columns: []*schema.Column{AccountsColumns[24]},
 			},
 			{
 				Name:    "account_platform_priority",
@@ -216,7 +217,7 @@ var (
 			{
 				Name:    "account_parent_account_id",
 				Unique:  false,
-				Columns: []*schema.Column{AccountsColumns[31]},
+				Columns: []*schema.Column{AccountsColumns[32]},
 			},
 		},
 	}
@@ -614,6 +615,60 @@ var (
 				Name:    "batchimagejob_user_deleted_at",
 				Unique:  false,
 				Columns: []*schema.Column{BatchImageJobsColumns[32]},
+			},
+		},
+	}
+	// CatproxyProviderConfigsColumns holds the columns for the "catproxy_provider_configs" table.
+	CatproxyProviderConfigsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "name", Type: field.TypeString, Size: 100},
+		{Name: "provider_type", Type: field.TypeEnum, Enums: []string{"catproxies"}, Default: "catproxies"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "retiring", "disabled", "credential_error"}, Default: "active"},
+		{Name: "is_default", Type: field.TypeBool, Default: false},
+		{Name: "protocol", Type: field.TypeEnum, Enums: []string{"http", "socks5h"}, Default: "http"},
+		{Name: "host", Type: field.TypeString, Size: 255},
+		{Name: "base_username", Type: field.TypeString, Size: 255},
+		{Name: "password", Type: field.TypeString, Size: 255},
+		{Name: "default_country", Type: field.TypeString, Nullable: true, Size: 100},
+		{Name: "default_state", Type: field.TypeString, Nullable: true, Size: 100},
+		{Name: "default_city", Type: field.TypeString, Nullable: true, Size: 100},
+		{Name: "lifetime_minutes", Type: field.TypeInt, Default: 60},
+		{Name: "strict", Type: field.TypeBool, Default: true},
+		{Name: "last_probe_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "last_probe_latency_ms", Type: field.TypeInt, Nullable: true},
+		{Name: "last_error", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "last_error_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// CatproxyProviderConfigsTable holds the schema information for the "catproxy_provider_configs" table.
+	CatproxyProviderConfigsTable = &schema.Table{
+		Name:       "catproxy_provider_configs",
+		Columns:    CatproxyProviderConfigsColumns,
+		PrimaryKey: []*schema.Column{CatproxyProviderConfigsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "catproxyproviderconfig_name",
+				Unique:  true,
+				Columns: []*schema.Column{CatproxyProviderConfigsColumns[3]},
+			},
+			{
+				Name:    "catproxyproviderconfig_provider_type",
+				Unique:  false,
+				Columns: []*schema.Column{CatproxyProviderConfigsColumns[4]},
+			},
+			{
+				Name:    "catproxyproviderconfig_status",
+				Unique:  false,
+				Columns: []*schema.Column{CatproxyProviderConfigsColumns[5]},
+			},
+			{
+				Name:    "catproxyproviderconfig_is_default",
+				Unique:  true,
+				Columns: []*schema.Column{CatproxyProviderConfigsColumns[6]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "provider_type = 'catproxies' AND is_default",
+				},
 			},
 		},
 	}
@@ -1085,6 +1140,105 @@ var (
 			},
 		},
 	}
+	// ManagedProxyLeasesColumns holds the columns for the "managed_proxy_leases" table.
+	ManagedProxyLeasesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "session_id", Type: field.TypeString, Size: 255},
+		{Name: "target_country", Type: field.TypeString, Nullable: true, Size: 100},
+		{Name: "target_state", Type: field.TypeString, Nullable: true, Size: 100},
+		{Name: "target_city", Type: field.TypeString, Nullable: true, Size: 100},
+		{Name: "strict", Type: field.TypeBool},
+		{Name: "lifetime_minutes", Type: field.TypeInt},
+		{Name: "state", Type: field.TypeEnum, Enums: []string{"pending", "active", "rotating", "expired", "failed", "released"}, Default: "pending"},
+		{Name: "health_status", Type: field.TypeEnum, Enums: []string{"unknown", "healthy", "degraded", "unhealthy"}, Default: "unknown"},
+		{Name: "health_checked_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "observed_exit_ip", Type: field.TypeString, Nullable: true, Size: 45},
+		{Name: "observed_country", Type: field.TypeString, Nullable: true, Size: 100},
+		{Name: "observed_state", Type: field.TypeString, Nullable: true, Size: 100},
+		{Name: "observed_city", Type: field.TypeString, Nullable: true, Size: 100},
+		{Name: "observed_latency_ms", Type: field.TypeInt, Nullable: true},
+		{Name: "activated_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "last_rotated_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "next_rotation_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "failure_count", Type: field.TypeInt, Default: 0},
+		{Name: "consecutive_failure_count", Type: field.TypeInt, Default: 0},
+		{Name: "last_error", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "last_error_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "account_id", Type: field.TypeInt64, Unique: true},
+		{Name: "provider_config_id", Type: field.TypeInt64},
+		{Name: "proxy_id", Type: field.TypeInt64},
+	}
+	// ManagedProxyLeasesTable holds the schema information for the "managed_proxy_leases" table.
+	ManagedProxyLeasesTable = &schema.Table{
+		Name:       "managed_proxy_leases",
+		Columns:    ManagedProxyLeasesColumns,
+		PrimaryKey: []*schema.Column{ManagedProxyLeasesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "managed_proxy_leases_accounts_managed_proxy_lease",
+				Columns:    []*schema.Column{ManagedProxyLeasesColumns[25]},
+				RefColumns: []*schema.Column{AccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "managed_proxy_leases_catproxy_provider_configs_leases",
+				Columns:    []*schema.Column{ManagedProxyLeasesColumns[26]},
+				RefColumns: []*schema.Column{CatproxyProviderConfigsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "managed_proxy_leases_proxies_managed_proxy_leases",
+				Columns:    []*schema.Column{ManagedProxyLeasesColumns[27]},
+				RefColumns: []*schema.Column{ProxiesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "managedproxylease_account_id",
+				Unique:  true,
+				Columns: []*schema.Column{ManagedProxyLeasesColumns[25]},
+			},
+			{
+				Name:    "managedproxylease_proxy_id",
+				Unique:  true,
+				Columns: []*schema.Column{ManagedProxyLeasesColumns[27]},
+			},
+			{
+				Name:    "managedproxylease_provider_config_id",
+				Unique:  false,
+				Columns: []*schema.Column{ManagedProxyLeasesColumns[26]},
+			},
+			{
+				Name:    "managedproxylease_state",
+				Unique:  false,
+				Columns: []*schema.Column{ManagedProxyLeasesColumns[9]},
+			},
+			{
+				Name:    "managedproxylease_health_status",
+				Unique:  false,
+				Columns: []*schema.Column{ManagedProxyLeasesColumns[10]},
+			},
+			{
+				Name:    "managedproxylease_next_rotation_at",
+				Unique:  false,
+				Columns: []*schema.Column{ManagedProxyLeasesColumns[19]},
+			},
+			{
+				Name:    "managedproxylease_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{ManagedProxyLeasesColumns[20]},
+			},
+			{
+				Name:    "managedproxylease_provider_config_id_state",
+				Unique:  false,
+				Columns: []*schema.Column{ManagedProxyLeasesColumns[26], ManagedProxyLeasesColumns[9]},
+			},
+		},
+	}
 	// PaymentAuditLogsColumns holds the columns for the "payment_audit_logs" table.
 	PaymentAuditLogsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1395,8 +1549,8 @@ var (
 		{Name: "protocol", Type: field.TypeString, Size: 20},
 		{Name: "host", Type: field.TypeString, Size: 255},
 		{Name: "port", Type: field.TypeInt},
-		{Name: "username", Type: field.TypeString, Nullable: true, Size: 100},
-		{Name: "password", Type: field.TypeString, Nullable: true, Size: 100},
+		{Name: "username", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "password", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "status", Type: field.TypeString, Size: 20, Default: "active"},
 		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
 		{Name: "fallback_mode", Type: field.TypeString, Size: 20, Default: "none"},
@@ -2085,6 +2239,7 @@ var (
 		BatchImageEventsTable,
 		BatchImageItemsTable,
 		BatchImageJobsTable,
+		CatproxyProviderConfigsTable,
 		ChannelMonitorsTable,
 		ChannelMonitorDailyRollupsTable,
 		ChannelMonitorHistoriesTable,
@@ -2094,6 +2249,7 @@ var (
 		GroupsTable,
 		IdempotencyRecordsTable,
 		IdentityAdoptionDecisionsTable,
+		ManagedProxyLeasesTable,
 		PaymentAuditLogsTable,
 		PaymentOrdersTable,
 		PaymentProviderInstancesTable,
@@ -2158,6 +2314,9 @@ func init() {
 	BatchImageJobsTable.Annotation = &entsql.Annotation{
 		Table: "batch_image_jobs",
 	}
+	CatproxyProviderConfigsTable.Annotation = &entsql.Annotation{
+		Table: "catproxy_provider_configs",
+	}
 	ChannelMonitorsTable.ForeignKeys[0].RefTable = ChannelMonitorRequestTemplatesTable
 	ChannelMonitorsTable.Annotation = &entsql.Annotation{
 		Table: "channel_monitors",
@@ -2190,6 +2349,12 @@ func init() {
 	IdentityAdoptionDecisionsTable.ForeignKeys[1].RefTable = PendingAuthSessionsTable
 	IdentityAdoptionDecisionsTable.Annotation = &entsql.Annotation{
 		Table: "identity_adoption_decisions",
+	}
+	ManagedProxyLeasesTable.ForeignKeys[0].RefTable = AccountsTable
+	ManagedProxyLeasesTable.ForeignKeys[1].RefTable = CatproxyProviderConfigsTable
+	ManagedProxyLeasesTable.ForeignKeys[2].RefTable = ProxiesTable
+	ManagedProxyLeasesTable.Annotation = &entsql.Annotation{
+		Table: "managed_proxy_leases",
 	}
 	PaymentAuditLogsTable.Annotation = &entsql.Annotation{
 		Table: "payment_audit_logs",

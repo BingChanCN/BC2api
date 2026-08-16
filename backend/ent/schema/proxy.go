@@ -42,11 +42,11 @@ func (Proxy) Fields() []ent.Field {
 			NotEmpty(),
 		field.Int("port"),
 		field.String("username").
-			MaxLen(100).
+			MaxLen(255).
 			Optional().
 			Nillable(),
 		field.String("password").
-			MaxLen(100).
+			MaxLen(255).
 			Optional().
 			Nillable(),
 		field.String("status").
@@ -76,6 +76,7 @@ func (Proxy) Edges() []ent.Edge {
 		edge.To("backup_proxy", Proxy.Type).
 			Field("backup_proxy_id").
 			Unique(),
+		edge.To("managed_proxy_leases", ManagedProxyLease.Type),
 	}
 }
 

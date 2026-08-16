@@ -1160,6 +1160,7 @@ export interface Account {
 
   // Rate limit & scheduling fields
   schedulable: boolean
+  managed_proxy_ready?: boolean
   rate_limited_at: string | null
   rate_limit_reset_at: string | null
   overload_until: string | null
@@ -1494,12 +1495,37 @@ export interface UpdateProxyRequest {
   expiry_warn_days?: number
 }
 
+export interface AdminManagedProxyProvider {
+  provider_key: string
+  name: string
+  protocol: 'http' | 'socks5h'
+  host: string
+  base_username: string
+  password: string
+  default_country?: string | null
+  default_state?: string | null
+  default_city?: string | null
+  lifetime_minutes: number
+  strict: boolean
+  status: 'active' | 'retiring' | 'disabled' | 'credential_error'
+  is_default?: boolean
+}
+
+export interface AdminManagedProxyBinding {
+  provider_key: string
+  country?: string | null
+  state?: string | null
+  city?: string | null
+  strict?: boolean
+}
+
 export interface AdminDataPayload {
   type?: string
   version?: number
   exported_at: string
   proxies: AdminDataProxy[]
   accounts: AdminDataAccount[]
+  managed_proxy_providers?: AdminManagedProxyProvider[]
   // 导出时被排除的 spark 影子账号数量(影子不持凭据、其调度配置不在备份范围)。
   skipped_shadows?: number
 }
@@ -1528,13 +1554,21 @@ export interface AdminDataAccount {
   rate_multiplier?: number | null
   expires_at?: number | null
   auto_pause_on_expired?: boolean
+  managed_proxy?: AdminManagedProxyBinding
 }
 
 export interface AdminDataImportError {
-  kind: 'proxy' | 'account'
+  kind: 'proxy' | 'account' | 'managed_provider'
   name?: string
   proxy_key?: string
   message: string
+}
+
+export interface AdminDataAccountImportResult {
+  name: string
+  status: 'created' | 'proxy_probe_failed' | 'invalid' | 'failed'
+  managed: boolean
+  message?: string
 }
 
 export interface AdminDataImportResult {
@@ -1543,6 +1577,9 @@ export interface AdminDataImportResult {
   proxy_failed: number
   account_created: number
   account_failed: number
+  managed_provider_created?: number
+  managed_provider_failed?: number
+  account_results?: AdminDataAccountImportResult[]
   errors?: AdminDataImportError[]
 }
 

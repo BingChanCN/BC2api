@@ -79,7 +79,7 @@ func (r *proxyRepository) ListByIDs(ctx context.Context, ids []int64) ([]service
 	}
 
 	proxies, err := r.client.Proxy.Query().
-		Where(proxy.IDIn(ids...)).
+		Where(proxy.IDIn(ids...), proxy.Not(proxy.HasManagedProxyLeases())).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -274,7 +274,7 @@ func enqueueProxyProbeAccountChanges(ctx context.Context, exec sqlExecutor, acco
 }
 
 func (r *proxyRepository) Delete(ctx context.Context, id int64) error {
-	_, err := r.client.Proxy.Delete().Where(proxy.IDEQ(id)).Exec(ctx)
+	_, err := clientFromContext(ctx, r.client).Proxy.Delete().Where(proxy.IDEQ(id)).Exec(ctx)
 	return err
 }
 
@@ -284,7 +284,7 @@ func (r *proxyRepository) List(ctx context.Context, params pagination.Pagination
 
 // ListWithFilters lists proxies with optional filtering by protocol, status, and search query
 func (r *proxyRepository) ListWithFilters(ctx context.Context, params pagination.PaginationParams, protocol, status, search string) ([]service.Proxy, *pagination.PaginationResult, error) {
-	q := r.client.Proxy.Query()
+	q := r.client.Proxy.Query().Where(proxy.Not(proxy.HasManagedProxyLeases()))
 	if protocol != "" {
 		q = q.Where(proxy.ProtocolEQ(protocol))
 	}
@@ -322,7 +322,7 @@ func (r *proxyRepository) ListWithFilters(ctx context.Context, params pagination
 
 // ListWithFiltersAndAccountCount lists proxies with filters and includes account count per proxy
 func (r *proxyRepository) ListWithFiltersAndAccountCount(ctx context.Context, params pagination.PaginationParams, protocol, status, search string) ([]service.ProxyWithAccountCount, *pagination.PaginationResult, error) {
-	q := r.client.Proxy.Query()
+	q := r.client.Proxy.Query().Where(proxy.Not(proxy.HasManagedProxyLeases()))
 	if protocol != "" {
 		q = q.Where(proxy.ProtocolEQ(protocol))
 	}
@@ -437,7 +437,7 @@ func proxyListOrder(params pagination.PaginationParams) []func(*entsql.Selector)
 
 func (r *proxyRepository) ListActive(ctx context.Context) ([]service.Proxy, error) {
 	proxies, err := r.client.Proxy.Query().
-		Where(proxy.StatusEQ(service.StatusActive)).
+		Where(proxy.StatusEQ(service.StatusActive), proxy.Not(proxy.HasManagedProxyLeases())).
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -550,7 +550,7 @@ func (r *proxyRepository) GetAccountCountsForProxies(ctx context.Context) (count
 // ListActiveWithAccountCount returns all active proxies with account count, sorted by creation time descending
 func (r *proxyRepository) ListActiveWithAccountCount(ctx context.Context) ([]service.ProxyWithAccountCount, error) {
 	proxies, err := r.client.Proxy.Query().
-		Where(proxy.StatusEQ(service.StatusActive)).
+		Where(proxy.StatusEQ(service.StatusActive), proxy.Not(proxy.HasManagedProxyLeases())).
 		Order(dbent.Desc(proxy.FieldCreatedAt)).
 		All(ctx)
 	if err != nil {
@@ -596,6 +596,7 @@ func proxyEntityToService(m *dbent.Proxy) *service.Proxy {
 		FallbackMode:   m.FallbackMode,
 		BackupProxyID:  m.BackupProxyID,
 		ExpiryWarnDays: m.ExpiryWarnDays,
+		Managed:        len(m.Edges.ManagedProxyLeases) > 0,
 	}
 	if m.Username != nil {
 		out.Username = *m.Username
@@ -617,7 +618,7 @@ func applyProxyEntityToService(dst *service.Proxy, src *dbent.Proxy) {
 
 // ListAllForFallback 返回所有代理（含过期/非活跃），供改投逻辑使用。
 func (r *proxyRepository) ListAllForFallback(ctx context.Context) ([]service.Proxy, error) {
-	proxies, err := r.client.Proxy.Query().All(ctx)
+	proxies, err := r.client.Proxy.Query().Where(proxy.Not(proxy.HasManagedProxyLeases())).All(ctx)
 	if err != nil {
 		return nil, err
 	}

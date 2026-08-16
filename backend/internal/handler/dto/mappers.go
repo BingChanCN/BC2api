@@ -260,6 +260,7 @@ func AccountFromServiceShallow(a *service.Account) *Account {
 		CreatedAt:               a.CreatedAt,
 		UpdatedAt:               a.UpdatedAt,
 		Schedulable:             a.Schedulable,
+		ManagedProxyReady:       a.IsManagedProxyReady(),
 		RateLimitedAt:           a.RateLimitedAt,
 		RateLimitResetAt:        a.RateLimitResetAt,
 		OverloadUntil:           a.OverloadUntil,
@@ -468,13 +469,19 @@ func ProxyFromService(p *service.Proxy) *Proxy {
 	if p == nil {
 		return nil
 	}
+	name := p.Name
+	username := p.Username
+	if p.Managed {
+		name = ""
+		username = ""
+	}
 	return &Proxy{
 		ID:             p.ID,
-		Name:           p.Name,
+		Name:           name,
 		Protocol:       p.Protocol,
 		Host:           p.Host,
 		Port:           p.Port,
-		Username:       p.Username,
+		Username:       username,
 		Status:         p.Status,
 		CreatedAt:      p.CreatedAt,
 		UpdatedAt:      p.UpdatedAt,

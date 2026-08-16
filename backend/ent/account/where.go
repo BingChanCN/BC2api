@@ -150,6 +150,11 @@ func Schedulable(v bool) predicate.Account {
 	return predicate.Account(sql.FieldEQ(FieldSchedulable, v))
 }
 
+// ManagedProxyReady applies equality check predicate on the "managed_proxy_ready" field. It's identical to ManagedProxyReadyEQ.
+func ManagedProxyReady(v bool) predicate.Account {
+	return predicate.Account(sql.FieldEQ(FieldManagedProxyReady, v))
+}
+
 // RateLimitedAt applies equality check predicate on the "rate_limited_at" field. It's identical to RateLimitedAtEQ.
 func RateLimitedAt(v time.Time) predicate.Account {
 	return predicate.Account(sql.FieldEQ(FieldRateLimitedAt, v))
@@ -1105,6 +1110,16 @@ func SchedulableNEQ(v bool) predicate.Account {
 	return predicate.Account(sql.FieldNEQ(FieldSchedulable, v))
 }
 
+// ManagedProxyReadyEQ applies the EQ predicate on the "managed_proxy_ready" field.
+func ManagedProxyReadyEQ(v bool) predicate.Account {
+	return predicate.Account(sql.FieldEQ(FieldManagedProxyReady, v))
+}
+
+// ManagedProxyReadyNEQ applies the NEQ predicate on the "managed_proxy_ready" field.
+func ManagedProxyReadyNEQ(v bool) predicate.Account {
+	return predicate.Account(sql.FieldNEQ(FieldManagedProxyReady, v))
+}
+
 // RateLimitedAtEQ applies the EQ predicate on the "rate_limited_at" field.
 func RateLimitedAtEQ(v time.Time) predicate.Account {
 	return predicate.Account(sql.FieldEQ(FieldRateLimitedAt, v))
@@ -1712,6 +1727,29 @@ func HasUsageLogs() predicate.Account {
 func HasUsageLogsWith(preds ...predicate.UsageLog) predicate.Account {
 	return predicate.Account(func(s *sql.Selector) {
 		step := newUsageLogsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasManagedProxyLease applies the HasEdge predicate on the "managed_proxy_lease" edge.
+func HasManagedProxyLease() predicate.Account {
+	return predicate.Account(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, ManagedProxyLeaseTable, ManagedProxyLeaseColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasManagedProxyLeaseWith applies the HasEdge predicate on the "managed_proxy_lease" edge with a given conditions (other predicates).
+func HasManagedProxyLeaseWith(preds ...predicate.ManagedProxyLease) predicate.Account {
+	return predicate.Account(func(s *sql.Selector) {
+		step := newManagedProxyLeaseStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

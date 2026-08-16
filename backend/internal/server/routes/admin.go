@@ -60,6 +60,7 @@ func RegisterAdminRoutes(
 
 		// 代理管理
 		registerProxyRoutes(admin, h, stepUpAuth)
+		registerCatProxiesRoutes(admin, h)
 
 		// 卡密管理
 		registerRedeemCodeRoutes(admin, h)
@@ -500,6 +501,26 @@ func registerProxyRoutes(admin *gin.RouterGroup, h *handler.Handlers, stepUpAuth
 		proxies.GET("/:id/accounts", h.Admin.Proxy.GetProxyAccounts)
 		proxies.POST("/batch-delete", h.Admin.Proxy.BatchDelete)
 		proxies.POST("/batch", h.Admin.Proxy.BatchCreate)
+	}
+}
+
+func registerCatProxiesRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	catproxies := admin.Group("/catproxies")
+	{
+		catproxies.GET("/targeting", h.Admin.CatProxies.Targeting)
+		catproxies.GET("/configs", h.Admin.CatProxies.ListConfigs)
+		catproxies.GET("/configs/:id", h.Admin.CatProxies.GetConfig)
+		catproxies.POST("/configs", h.Admin.CatProxies.CreateConfig)
+		catproxies.PUT("/configs/:id", h.Admin.CatProxies.UpdateConfig)
+		catproxies.PUT("/configs/:id/status", h.Admin.CatProxies.UpdateConfigStatus)
+		catproxies.DELETE("/configs/:id", h.Admin.CatProxies.DeleteConfig)
+		catproxies.POST("/configs/:id/test", h.Admin.CatProxies.TestConfig)
+		catproxies.GET("/accounts", h.Admin.CatProxies.ListManaged)
+		catproxies.GET("/accounts/:account_id", h.Admin.CatProxies.GetManaged)
+		catproxies.POST("/accounts/:account_id", h.Admin.CatProxies.Manage)
+		catproxies.POST("/accounts/:account_id/rotate", h.Admin.CatProxies.Rotate)
+		catproxies.POST("/accounts/:account_id/migrate", h.Admin.CatProxies.Migrate)
+		catproxies.DELETE("/accounts/:account_id", h.Admin.CatProxies.Release)
 	}
 }
 

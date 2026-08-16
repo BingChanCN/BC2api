@@ -14,10 +14,18 @@ import (
 	"strings"
 	"time"
 
+	dbent "github.com/Wei-Shaw/sub2api/ent"
+	dbaccount "github.com/Wei-Shaw/sub2api/ent/account"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 )
+
+type managedProxyAccountDeleteRepository interface {
+	LockByAccountID(ctx context.Context, accountID int64) (*ManagedProxyLease, error)
+	Delete(ctx context.Context, accountID int64) error
+	DeleteProxyPermanently(ctx context.Context, proxyID int64) error
+}
 
 // Account management implementations
 func (s *adminServiceImpl) ListAccounts(ctx context.Context, page, pageSize int, platform, accountType, status, search string, groupID int64, privacyMode string, sortBy, sortOrder string) ([]Account, int64, error) {
@@ -245,6 +253,9 @@ func (s *adminServiceImpl) DuplicateAccount(ctx context.Context, id int64, actor
 
 	source, err := s.accountRepo.GetByID(ctx, id)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.rejectManagedAccountProxyMutation(ctx, id); err != nil {
 		return nil, err
 	}
 	if source.IsCredentialShadow() {
@@ -545,6 +556,11 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 	account, err := s.accountRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if input.ProxyID != nil {
+		if err := s.rejectManagedAccountProxyMutation(ctx, id); err != nil {
+			return nil, err
+		}
 	}
 	var normalizedExtra map[string]any
 	if input.Extra != nil {
@@ -851,6 +867,20 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 
 // UpdateAccountExtra 仅对 Extra JSONB 做 key 级合并，避免覆盖其它运行态键
 // （如 model_rate_limits / passive_usage_* 等）。
+func (s *adminServiceImpl) rejectManagedAccountProxyMutation(ctx context.Context, accountID int64) error {
+	if s.managedProxyLeaseRepo == nil {
+		return nil
+	}
+	_, err := s.managedProxyLeaseRepo.GetByAccountID(ctx, accountID)
+	if errors.Is(err, ErrManagedProxyLeaseNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return ErrManagedProxyAccountProxyImmutable
+}
+
 func (s *adminServiceImpl) UpdateAccountExtra(ctx context.Context, id int64, updates map[string]any) error {
 	delete(updates, UpstreamBillingProbeEnabledExtraKey)
 	delete(updates, UpstreamBillingRateSyncEnabledExtraKey)
@@ -967,6 +997,14 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 			if acc != nil && acc.IsCredentialShadow() {
 				return nil, infraerrors.Newf(http.StatusBadRequest, "SPARK_SHADOW_PROXY_INHERITED",
 					"spark shadow account %d proxy is inherited from its parent and cannot be set in bulk; manage it on the parent account", acc.ID)
+			}
+			if acc == nil || s.managedProxyLeaseRepo == nil {
+				continue
+			}
+			if _, err := s.managedProxyLeaseRepo.GetByAccountID(ctx, acc.ID); err == nil {
+				return nil, ErrManagedProxyAccountProxyImmutable
+			} else if !errors.Is(err, ErrManagedProxyLeaseNotFound) {
+				return nil, err
 			}
 		}
 	}
@@ -1196,20 +1234,80 @@ func (s *adminServiceImpl) resolveBulkUpdateTargetIDs(ctx context.Context, filte
 }
 
 func (s *adminServiceImpl) DeleteAccount(ctx context.Context, id int64) error {
-	// 级联删除 spark 影子账号（先删影子，再删母账号）
+	// 级联删除 spark 影子账号（先删影子，再删母账号）。生产装配始终提供
+	// Ent client 与 lease repository；测试中的精简装配保留普通删除路径。
 	shadows, err := s.accountRepo.ListShadowsByParent(ctx, id)
 	if err != nil {
 		return fmt.Errorf("list spark shadows for cascade delete: %w", err)
 	}
+	if s.entClient == nil || s.managedProxyLeaseRepo == nil {
+		for _, shadow := range shadows {
+			if err := s.accountRepo.Delete(ctx, shadow.ID); err != nil {
+				return fmt.Errorf("cascade delete spark shadow %d: %w", shadow.ID, err)
+			}
+		}
+		return s.accountRepo.Delete(ctx, id)
+	}
+	managedDeleteRepo, ok := s.managedProxyLeaseRepo.(managedProxyAccountDeleteRepository)
+	if !ok {
+		return fmt.Errorf("managed account deletion repository is not configured")
+	}
+
+	accountIDs := make([]int64, 0, len(shadows)+1)
 	for _, shadow := range shadows {
-		if err := s.accountRepo.Delete(ctx, shadow.ID); err != nil {
+		accountIDs = append(accountIDs, shadow.ID)
+	}
+	accountIDs = append(accountIDs, id)
+
+	tx, err := s.entClient.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("begin account delete transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	deleteCtx := dbent.NewTxContext(ctx, tx)
+
+	// 与 Activate 使用同一账号行锁。若删除先拿锁，后续 Activate 看不到软删账号；
+	// 若 Activate 先提交，下面会在锁后读到并清理它刚创建的 lease/proxy。
+	_, lockErr := tx.Account.Query().Where(dbaccount.IDIn(accountIDs...)).Order(dbent.Asc(dbaccount.FieldID)).ForUpdate().All(deleteCtx)
+	if lockErr != nil && strings.Contains(lockErr.Error(), "FOR UPDATE/SHARE not supported in SQLite") {
+		_, lockErr = tx.Account.Query().Where(dbaccount.IDIn(accountIDs...)).Order(dbent.Asc(dbaccount.FieldID)).All(deleteCtx)
+	}
+	if lockErr != nil {
+		return fmt.Errorf("lock accounts for delete: %w", lockErr)
+	}
+
+	managedProxyIDs := make([]int64, 0, len(accountIDs))
+	for _, accountID := range accountIDs {
+		lease, leaseErr := managedDeleteRepo.LockByAccountID(deleteCtx, accountID)
+		if errors.Is(leaseErr, ErrManagedProxyLeaseNotFound) {
+			continue
+		}
+		if leaseErr != nil {
+			return leaseErr
+		}
+		if _, err := tx.Account.Update().Where(dbaccount.IDEQ(accountID), dbaccount.ProxyIDEQ(lease.ProxyID)).ClearProxyID().Save(deleteCtx); err != nil {
+			return fmt.Errorf("clear managed proxy binding for account %d: %w", accountID, err)
+		}
+		if err := managedDeleteRepo.Delete(deleteCtx, accountID); err != nil {
+			return fmt.Errorf("delete managed proxy lease for account %d: %w", accountID, err)
+		}
+		managedProxyIDs = append(managedProxyIDs, lease.ProxyID)
+	}
+
+	for _, shadow := range shadows {
+		if err := s.accountRepo.Delete(deleteCtx, shadow.ID); err != nil {
 			return fmt.Errorf("cascade delete spark shadow %d: %w", shadow.ID, err)
 		}
 	}
-	if err := s.accountRepo.Delete(ctx, id); err != nil {
+	if err := s.accountRepo.Delete(deleteCtx, id); err != nil {
 		return err
 	}
-	return nil
+	for _, proxyID := range managedProxyIDs {
+		if err := managedDeleteRepo.DeleteProxyPermanently(deleteCtx, proxyID); err != nil {
+			return fmt.Errorf("delete managed proxy %d: %w", proxyID, err)
+		}
+	}
+	return tx.Commit()
 }
 
 func (s *adminServiceImpl) RefreshAccountCredentials(ctx context.Context, id int64) (*Account, error) {

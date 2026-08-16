@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/account"
 	"github.com/Wei-Shaw/sub2api/ent/group"
+	"github.com/Wei-Shaw/sub2api/ent/managedproxylease"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
 )
@@ -279,6 +280,20 @@ func (_c *AccountCreate) SetNillableSchedulable(v *bool) *AccountCreate {
 	return _c
 }
 
+// SetManagedProxyReady sets the "managed_proxy_ready" field.
+func (_c *AccountCreate) SetManagedProxyReady(v bool) *AccountCreate {
+	_c.mutation.SetManagedProxyReady(v)
+	return _c
+}
+
+// SetNillableManagedProxyReady sets the "managed_proxy_ready" field if the given value is not nil.
+func (_c *AccountCreate) SetNillableManagedProxyReady(v *bool) *AccountCreate {
+	if v != nil {
+		_c.SetManagedProxyReady(*v)
+	}
+	return _c
+}
+
 // SetRateLimitedAt sets the "rate_limited_at" field.
 func (_c *AccountCreate) SetRateLimitedAt(v time.Time) *AccountCreate {
 	_c.mutation.SetRateLimitedAt(v)
@@ -488,6 +503,25 @@ func (_c *AccountCreate) AddUsageLogs(v ...*UsageLog) *AccountCreate {
 	return _c.AddUsageLogIDs(ids...)
 }
 
+// SetManagedProxyLeaseID sets the "managed_proxy_lease" edge to the ManagedProxyLease entity by ID.
+func (_c *AccountCreate) SetManagedProxyLeaseID(id int64) *AccountCreate {
+	_c.mutation.SetManagedProxyLeaseID(id)
+	return _c
+}
+
+// SetNillableManagedProxyLeaseID sets the "managed_proxy_lease" edge to the ManagedProxyLease entity by ID if the given value is not nil.
+func (_c *AccountCreate) SetNillableManagedProxyLeaseID(id *int64) *AccountCreate {
+	if id != nil {
+		_c = _c.SetManagedProxyLeaseID(*id)
+	}
+	return _c
+}
+
+// SetManagedProxyLease sets the "managed_proxy_lease" edge to the ManagedProxyLease entity.
+func (_c *AccountCreate) SetManagedProxyLease(v *ManagedProxyLease) *AccountCreate {
+	return _c.SetManagedProxyLeaseID(v.ID)
+}
+
 // Mutation returns the AccountMutation object of the builder.
 func (_c *AccountCreate) Mutation() *AccountMutation {
 	return _c.mutation
@@ -577,6 +611,10 @@ func (_c *AccountCreate) defaults() error {
 		v := account.DefaultSchedulable
 		_c.mutation.SetSchedulable(v)
 	}
+	if _, ok := _c.mutation.ManagedProxyReady(); !ok {
+		v := account.DefaultManagedProxyReady
+		_c.mutation.SetManagedProxyReady(v)
+	}
 	if _, ok := _c.mutation.QuotaDimension(); !ok {
 		v := account.DefaultQuotaDimension
 		_c.mutation.SetQuotaDimension(v)
@@ -644,6 +682,9 @@ func (_c *AccountCreate) check() error {
 	}
 	if _, ok := _c.mutation.Schedulable(); !ok {
 		return &ValidationError{Name: "schedulable", err: errors.New(`ent: missing required field "Account.schedulable"`)}
+	}
+	if _, ok := _c.mutation.ManagedProxyReady(); !ok {
+		return &ValidationError{Name: "managed_proxy_ready", err: errors.New(`ent: missing required field "Account.managed_proxy_ready"`)}
 	}
 	if v, ok := _c.mutation.SessionWindowStatus(); ok {
 		if err := account.SessionWindowStatusValidator(v); err != nil {
@@ -765,6 +806,10 @@ func (_c *AccountCreate) createSpec() (*Account, *sqlgraph.CreateSpec) {
 		_spec.SetField(account.FieldSchedulable, field.TypeBool, value)
 		_node.Schedulable = value
 	}
+	if value, ok := _c.mutation.ManagedProxyReady(); ok {
+		_spec.SetField(account.FieldManagedProxyReady, field.TypeBool, value)
+		_node.ManagedProxyReady = value
+	}
 	if value, ok := _c.mutation.RateLimitedAt(); ok {
 		_spec.SetField(account.FieldRateLimitedAt, field.TypeTime, value)
 		_node.RateLimitedAt = &value
@@ -880,6 +925,22 @@ func (_c *AccountCreate) createSpec() (*Account, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(usagelog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ManagedProxyLeaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   account.ManagedProxyLeaseTable,
+			Columns: []string{account.ManagedProxyLeaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -1254,6 +1315,18 @@ func (u *AccountUpsert) SetSchedulable(v bool) *AccountUpsert {
 // UpdateSchedulable sets the "schedulable" field to the value that was provided on create.
 func (u *AccountUpsert) UpdateSchedulable() *AccountUpsert {
 	u.SetExcluded(account.FieldSchedulable)
+	return u
+}
+
+// SetManagedProxyReady sets the "managed_proxy_ready" field.
+func (u *AccountUpsert) SetManagedProxyReady(v bool) *AccountUpsert {
+	u.Set(account.FieldManagedProxyReady, v)
+	return u
+}
+
+// UpdateManagedProxyReady sets the "managed_proxy_ready" field to the value that was provided on create.
+func (u *AccountUpsert) UpdateManagedProxyReady() *AccountUpsert {
+	u.SetExcluded(account.FieldManagedProxyReady)
 	return u
 }
 
@@ -1844,6 +1917,20 @@ func (u *AccountUpsertOne) SetSchedulable(v bool) *AccountUpsertOne {
 func (u *AccountUpsertOne) UpdateSchedulable() *AccountUpsertOne {
 	return u.Update(func(s *AccountUpsert) {
 		s.UpdateSchedulable()
+	})
+}
+
+// SetManagedProxyReady sets the "managed_proxy_ready" field.
+func (u *AccountUpsertOne) SetManagedProxyReady(v bool) *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetManagedProxyReady(v)
+	})
+}
+
+// UpdateManagedProxyReady sets the "managed_proxy_ready" field to the value that was provided on create.
+func (u *AccountUpsertOne) UpdateManagedProxyReady() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateManagedProxyReady()
 	})
 }
 
@@ -2629,6 +2716,20 @@ func (u *AccountUpsertBulk) SetSchedulable(v bool) *AccountUpsertBulk {
 func (u *AccountUpsertBulk) UpdateSchedulable() *AccountUpsertBulk {
 	return u.Update(func(s *AccountUpsert) {
 		s.UpdateSchedulable()
+	})
+}
+
+// SetManagedProxyReady sets the "managed_proxy_ready" field.
+func (u *AccountUpsertBulk) SetManagedProxyReady(v bool) *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetManagedProxyReady(v)
+	})
+}
+
+// UpdateManagedProxyReady sets the "managed_proxy_ready" field to the value that was provided on create.
+func (u *AccountUpsertBulk) UpdateManagedProxyReady() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateManagedProxyReady()
 	})
 }
 

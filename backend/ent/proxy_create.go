@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/account"
+	"github.com/Wei-Shaw/sub2api/ent/managedproxylease"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 )
 
@@ -205,6 +206,21 @@ func (_c *ProxyCreate) AddAccounts(v ...*Account) *ProxyCreate {
 // SetBackupProxy sets the "backup_proxy" edge to the Proxy entity.
 func (_c *ProxyCreate) SetBackupProxy(v *Proxy) *ProxyCreate {
 	return _c.SetBackupProxyID(v.ID)
+}
+
+// AddManagedProxyLeaseIDs adds the "managed_proxy_leases" edge to the ManagedProxyLease entity by IDs.
+func (_c *ProxyCreate) AddManagedProxyLeaseIDs(ids ...int64) *ProxyCreate {
+	_c.mutation.AddManagedProxyLeaseIDs(ids...)
+	return _c
+}
+
+// AddManagedProxyLeases adds the "managed_proxy_leases" edges to the ManagedProxyLease entity.
+func (_c *ProxyCreate) AddManagedProxyLeases(v ...*ManagedProxyLease) *ProxyCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddManagedProxyLeaseIDs(ids...)
 }
 
 // Mutation returns the ProxyMutation object of the builder.
@@ -447,6 +463,22 @@ func (_c *ProxyCreate) createSpec() (*Proxy, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.BackupProxyID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ManagedProxyLeasesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   proxy.ManagedProxyLeasesTable,
+			Columns: []string{proxy.ManagedProxyLeasesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

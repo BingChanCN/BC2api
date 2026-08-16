@@ -147,6 +147,9 @@ func (Account) Fields() []ent.Field {
 		// false 表示账户暂时不参与请求分配（如正在刷新 token）
 		field.Bool("schedulable").
 			Default(true),
+		// managed_proxy_ready is an independent health gate for system-managed proxies.
+		field.Bool("managed_proxy_ready").
+			Default(true),
 
 		// rate_limited_at: 触发速率限制的时间
 		// 当收到 429 错误时记录
@@ -227,6 +230,8 @@ func (Account) Edges() []ent.Edge {
 			Unique(),
 		// usage_logs: 该账户的使用日志
 		edge.To("usage_logs", UsageLog.Type),
+		// managed_proxy_lease: 当前账户的 CatProxies 托管代理租约
+		edge.To("managed_proxy_lease", ManagedProxyLease.Type).Unique(),
 	}
 }
 

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -48,6 +49,9 @@ func (s *adminServiceImpl) GetAllProxiesWithAccountCount(ctx context.Context) ([
 }
 
 func (s *adminServiceImpl) GetProxy(ctx context.Context, id int64) (*Proxy, error) {
+	if err := s.rejectManagedProxyMutation(ctx, id); err != nil {
+		return nil, err
+	}
 	return s.proxyRepo.GetByID(ctx, id)
 }
 
@@ -91,6 +95,9 @@ func (s *adminServiceImpl) CreateProxy(ctx context.Context, input *CreateProxyIn
 }
 
 func (s *adminServiceImpl) UpdateProxy(ctx context.Context, id int64, input *UpdateProxyInput) (*Proxy, error) {
+	if err := s.rejectManagedProxyMutation(ctx, id); err != nil {
+		return nil, err
+	}
 	// 校验：backup_proxy_id 不能是自身
 	if input.BackupProxyID != nil && *input.BackupProxyID == id {
 		return nil, infraerrors.BadRequest("PROXY_BACKUP_SELF", "backup proxy cannot be itself")
@@ -147,6 +154,9 @@ func (s *adminServiceImpl) UpdateProxy(ctx context.Context, id int64, input *Upd
 }
 
 func (s *adminServiceImpl) DeleteProxy(ctx context.Context, id int64) error {
+	if err := s.rejectManagedProxyMutation(ctx, id); err != nil {
+		return err
+	}
 	count, err := s.proxyRepo.CountAccountsByProxyID(ctx, id)
 	if err != nil {
 		return err
@@ -164,6 +174,10 @@ func (s *adminServiceImpl) BatchDeleteProxies(ctx context.Context, ids []int64) 
 	}
 
 	for _, id := range ids {
+		if err := s.rejectManagedProxyMutation(ctx, id); err != nil {
+			result.Skipped = append(result.Skipped, ProxyBatchDeleteSkipped{ID: id, Reason: err.Error()})
+			continue
+		}
 		count, err := s.proxyRepo.CountAccountsByProxyID(ctx, id)
 		if err != nil {
 			result.Skipped = append(result.Skipped, ProxyBatchDeleteSkipped{
@@ -192,6 +206,20 @@ func (s *adminServiceImpl) BatchDeleteProxies(ctx context.Context, ids []int64) 
 	return result, nil
 }
 
+func (s *adminServiceImpl) rejectManagedProxyMutation(ctx context.Context, proxyID int64) error {
+	if s.managedProxyLeaseRepo == nil {
+		return nil
+	}
+	_, err := s.managedProxyLeaseRepo.GetByProxyID(ctx, proxyID)
+	if errors.Is(err, ErrManagedProxyLeaseNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return ErrProxyInUse
+}
+
 func (s *adminServiceImpl) GetProxyAccounts(ctx context.Context, proxyID int64) ([]ProxyAccountSummary, error) {
 	return s.proxyRepo.ListAccountSummariesByProxyID(ctx, proxyID)
 }
@@ -201,6 +229,9 @@ func (s *adminServiceImpl) CheckProxyExists(ctx context.Context, host string, po
 }
 
 func (s *adminServiceImpl) TestProxy(ctx context.Context, id int64) (*ProxyTestResult, error) {
+	if err := s.rejectManagedProxyMutation(ctx, id); err != nil {
+		return nil, err
+	}
 	proxy, err := s.proxyRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -245,6 +276,9 @@ func (s *adminServiceImpl) TestProxy(ctx context.Context, id int64) (*ProxyTestR
 }
 
 func (s *adminServiceImpl) CheckProxyQuality(ctx context.Context, id int64) (*ProxyQualityCheckResult, error) {
+	if err := s.rejectManagedProxyMutation(ctx, id); err != nil {
+		return nil, err
+	}
 	proxy, err := s.proxyRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err

@@ -328,14 +328,30 @@
           </template>
           <template #cell-proxy="{ row }">
             <div class="flex flex-col gap-1">
-              <div v-if="row.proxy" class="flex items-center gap-2">
+              <div v-if="managedProxyFor(row.id)" class="flex flex-col gap-1">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex rounded bg-primary-50 px-1.5 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300">{{ t('admin.accounts.managedProxy.badge') }}</span>
+                  <span class="max-w-32 truncate text-xs text-gray-700 dark:text-dark-200" :title="managedProxyFor(row.id)?.provider_name">{{ managedProxyFor(row.id)?.provider_name }}</span>
+                  <span :class="managedProxyFor(row.id)?.managed_proxy_ready ? 'text-green-600' : 'text-red-600'" class="text-xs">{{ managedProxyFor(row.id)?.managed_proxy_ready ? t('admin.accounts.managedProxy.ready') : t('admin.accounts.managedProxy.blocked') }}</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-dark-400">
+                  <span class="font-mono">{{ managedProxyFor(row.id)?.lease.observed_exit_ip || '-' }}</span>
+                  <span>{{ managedProxyRegion(row.id) }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button class="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700" :disabled="managedActionId === row.id" :title="t('admin.accounts.managedProxy.rotate')" @click.stop="rotateManagedProxy(row.id)"><Icon name="refresh" size="xs" :class="managedActionId === row.id ? 'animate-spin' : ''" /></button>
+                  <button class="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700" :title="t('admin.accounts.managedProxy.migrate')" @click.stop="openManagedMigration(row.id)"><Icon name="sync" size="xs" /></button>
+                  <button class="rounded p-1 text-gray-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" :title="t('admin.accounts.managedProxy.release')" @click.stop="pendingManagedReleaseId = row.id"><Icon name="x" size="xs" /></button>
+                </div>
+              </div>
+              <div v-else-if="row.proxy" class="flex items-center gap-2">
                 <span class="text-sm text-gray-700 dark:text-gray-300">{{ row.proxy.name }}</span>
                 <span v-if="row.proxy.country_code" class="text-xs text-gray-500 dark:text-gray-400">
                   ({{ row.proxy.country_code }})
                 </span>
               </div>
               <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
-              <div v-if="row.proxy && row.proxy.expires_at" class="flex items-center gap-2 text-xs">
+              <div v-if="!managedProxyFor(row.id) && row.proxy && row.proxy.expires_at" class="flex items-center gap-2 text-xs">
                 <span class="text-gray-600 dark:text-gray-300">{{ formatDateTime(row.proxy.expires_at) }}</span>
                 <span :class="proxyExpiryBadge(row.proxy)">{{ proxyExpiryText(row.proxy) }}</span>
               </div>
@@ -451,7 +467,7 @@
       <template #pagination><Pagination v-if="pagination.total > 0" :page="pagination.page" :total="pagination.total" :page-size="pagination.page_size" @update:page="handlePageChange" @update:pageSize="handlePageSizeChange" /></template>
     </TablePageLayout>
     <CreateAccountModal :show="showCreate" :proxies="proxies" :groups="groups" @close="showCreate = false" @created="reload" />
-    <EditAccountModal :show="showEdit" :account="edAcc" :proxies="proxies" :groups="groups" @close="showEdit = false" @updated="handleAccountUpdated" />
+    <EditAccountModal :show="showEdit" :account="edAcc" :proxies="proxies" :groups="groups" :proxy-locked="!!(edAcc && managedProxyFor(edAcc.id))" @close="showEdit = false" @updated="handleAccountUpdated" />
     <ReAuthAccountModal :show="showReAuth" :account="reAuthAcc" @close="closeReAuthModal" @reauthorized="handleAccountUpdated" />
     <AccountTestModal :show="showTest" :account="testingAcc" @close="closeTestModal" />
     <AccountStatsModal :show="showStats" :account="statsAcc" @close="closeStatsModal" />
@@ -459,6 +475,16 @@
     <AccountActionMenu :show="menu.show" :account="menu.acc" :position="menu.pos" @close="menu.show = false" @test="handleTest" @stats="handleViewStats" @schedule="handleSchedule" @duplicate="handleDuplicateAccount" @reauth="handleReAuth" @refresh-token="handleRefresh" @recover-state="handleRecoverState" @reset-quota="handleResetQuota" @set-privacy="handleSetPrivacy" @create-spark-shadow="handleCreateSparkShadow" />
     <SyncFromCrsModal :show="showSync" @close="showSync = false" @synced="reload" />
     <ImportDataModal :show="showImportData" @close="showImportData = false" @imported="handleDataImported" />
+    <BaseDialog :show="managedMigrationAccountId !== null" :title="t('admin.accounts.managedProxy.migrate')" width="narrow" @close="managedMigrationAccountId = null">
+      <div>
+        <label class="input-label">{{ t('admin.accounts.managedProxy.targetProvider') }}</label>
+        <select v-model.number="managedMigrationProviderId" class="input">
+          <option v-for="config in activeManagedConfigs" :key="config.id" :value="config.id">{{ config.name }}</option>
+        </select>
+      </div>
+      <template #footer><div class="flex justify-end gap-3"><button class="btn btn-secondary" @click="managedMigrationAccountId = null">{{ t('common.cancel') }}</button><button class="btn btn-primary" :disabled="managedActionId !== null || !managedMigrationProviderId" @click="migrateManagedProxy">{{ t('common.confirm') }}</button></div></template>
+    </BaseDialog>
+    <ConfirmDialog :show="pendingManagedReleaseId !== null" :title="t('admin.accounts.managedProxy.release')" :message="t('admin.accounts.managedProxy.releaseConfirm')" danger @confirm="releaseManagedProxy" @cancel="pendingManagedReleaseId = null" />
     <BulkEditAccountModal
       :show="showBulkEdit"
       :account-ids="selIds"
@@ -492,6 +518,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/api/admin'
+import type { CatProxyProviderConfig, ManagedProxyAccount } from '@/api/admin'
 import { useTableLoader } from '@/composables/useTableLoader'
 import { useSwipeSelect, type SwipeSelectVirtualContext } from '@/composables/useSwipeSelect'
 import { useTableSelection } from '@/composables/useTableSelection'
@@ -503,6 +530,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import HelpTooltip from '@/components/common/HelpTooltip.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import BaseDialog from '@/components/common/BaseDialog.vue'
 import { CreateAccountModal, EditAccountModal, BulkEditAccountModal, SyncFromCrsModal, TempUnschedStatusModal } from '@/components/account'
 import AccountTableActions from '@/components/admin/account/AccountTableActions.vue'
 import AccountTableFilters from '@/components/admin/account/AccountTableFilters.vue'
@@ -1083,6 +1111,75 @@ const {
   }
 })
 
+const managedProxyAccounts = ref<ManagedProxyAccount[]>([])
+const managedProxyConfigs = ref<CatProxyProviderConfig[]>([])
+const managedActionId = ref<number | null>(null)
+const managedMigrationAccountId = ref<number | null>(null)
+const managedMigrationProviderId = ref<number | null>(null)
+const pendingManagedReleaseId = ref<number | null>(null)
+const managedProxyMap = computed(() => new Map(managedProxyAccounts.value.map((item) => [item.lease.account_id, item])))
+const activeManagedConfigs = computed(() => managedProxyConfigs.value.filter((item) => item.status === 'active'))
+const managedProxyFor = (accountId: number) => managedProxyMap.value.get(accountId)
+const managedProxyRegion = (accountId: number) => {
+  const lease = managedProxyFor(accountId)?.lease
+  return lease ? [lease.observed_country, lease.observed_state, lease.observed_city].filter(Boolean).join(' / ') || '-' : '-'
+}
+const loadManagedProxyState = async () => {
+  try {
+    const [managed, configs] = await Promise.all([
+      adminAPI.catproxies.listManaged(),
+      adminAPI.catproxies.listConfigs()
+    ])
+    managedProxyAccounts.value = managed
+    managedProxyConfigs.value = configs
+  } catch (error) {
+    console.error('Failed to load managed proxy state:', error)
+    managedProxyAccounts.value = []
+    managedProxyConfigs.value = []
+  }
+}
+const rotateManagedProxy = async (accountId: number) => {
+  managedActionId.value = accountId
+  try {
+    await adminAPI.catproxies.rotateAccount(accountId)
+    appStore.showSuccess(t('admin.accounts.managedProxy.rotated'))
+    await loadManagedProxyState()
+  } catch (error: any) {
+    appStore.showError(error?.message || t('admin.accounts.managedProxy.rotateFailed'))
+  } finally { managedActionId.value = null }
+}
+const openManagedMigration = (accountId: number) => {
+  managedMigrationAccountId.value = accountId
+  const currentProvider = managedProxyFor(accountId)?.lease.provider_config_id
+  managedMigrationProviderId.value = activeManagedConfigs.value.find((item) => item.id !== currentProvider)?.id || null
+}
+const migrateManagedProxy = async () => {
+  if (!managedMigrationAccountId.value || !managedMigrationProviderId.value) return
+  const accountId = managedMigrationAccountId.value
+  managedActionId.value = accountId
+  try {
+    await adminAPI.catproxies.migrateAccount(accountId, managedMigrationProviderId.value)
+    appStore.showSuccess(t('admin.accounts.managedProxy.migrated'))
+    managedMigrationAccountId.value = null
+    await loadManagedProxyState()
+  } catch (error: any) {
+    appStore.showError(error?.message || t('admin.accounts.managedProxy.migrateFailed'))
+  } finally { managedActionId.value = null }
+}
+const releaseManagedProxy = async () => {
+  if (!pendingManagedReleaseId.value) return
+  const accountId = pendingManagedReleaseId.value
+  managedActionId.value = accountId
+  pendingManagedReleaseId.value = null
+  try {
+    await adminAPI.catproxies.releaseAccount(accountId)
+    appStore.showSuccess(t('admin.accounts.managedProxy.released'))
+    await reload()
+  } catch (error: any) {
+    appStore.showError(error?.message || t('admin.accounts.managedProxy.releaseFailed'))
+  } finally { managedActionId.value = null }
+}
+
 const {
   selectedSet,
   selectedIds: selIds,
@@ -1157,7 +1254,7 @@ const load = async () => {
   if (isFirstLoad.value) {
     requestParams.lite = '1'
   }
-  await baseLoad()
+  await Promise.all([baseLoad(), loadManagedProxyState()])
   if (isFirstLoad.value) {
     isFirstLoad.value = false
     delete requestParams.lite
@@ -1171,7 +1268,7 @@ const reload = async () => {
   hasPendingListSync.value = false
   resetAutoRefreshCache()
   pendingTodayStatsRefresh.value = false
-  await baseReload()
+  await Promise.all([baseReload(), loadManagedProxyState()])
   await refreshTodayStatsBatch()
 }
 

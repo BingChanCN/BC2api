@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/account"
 	"github.com/Wei-Shaw/sub2api/ent/group"
+	"github.com/Wei-Shaw/sub2api/ent/managedproxylease"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
@@ -370,6 +371,20 @@ func (_u *AccountUpdate) SetNillableSchedulable(v *bool) *AccountUpdate {
 	return _u
 }
 
+// SetManagedProxyReady sets the "managed_proxy_ready" field.
+func (_u *AccountUpdate) SetManagedProxyReady(v bool) *AccountUpdate {
+	_u.mutation.SetManagedProxyReady(v)
+	return _u
+}
+
+// SetNillableManagedProxyReady sets the "managed_proxy_ready" field if the given value is not nil.
+func (_u *AccountUpdate) SetNillableManagedProxyReady(v *bool) *AccountUpdate {
+	if v != nil {
+		_u.SetManagedProxyReady(*v)
+	}
+	return _u
+}
+
 // SetRateLimitedAt sets the "rate_limited_at" field.
 func (_u *AccountUpdate) SetRateLimitedAt(v time.Time) *AccountUpdate {
 	_u.mutation.SetRateLimitedAt(v)
@@ -633,6 +648,25 @@ func (_u *AccountUpdate) AddUsageLogs(v ...*UsageLog) *AccountUpdate {
 	return _u.AddUsageLogIDs(ids...)
 }
 
+// SetManagedProxyLeaseID sets the "managed_proxy_lease" edge to the ManagedProxyLease entity by ID.
+func (_u *AccountUpdate) SetManagedProxyLeaseID(id int64) *AccountUpdate {
+	_u.mutation.SetManagedProxyLeaseID(id)
+	return _u
+}
+
+// SetNillableManagedProxyLeaseID sets the "managed_proxy_lease" edge to the ManagedProxyLease entity by ID if the given value is not nil.
+func (_u *AccountUpdate) SetNillableManagedProxyLeaseID(id *int64) *AccountUpdate {
+	if id != nil {
+		_u = _u.SetManagedProxyLeaseID(*id)
+	}
+	return _u
+}
+
+// SetManagedProxyLease sets the "managed_proxy_lease" edge to the ManagedProxyLease entity.
+func (_u *AccountUpdate) SetManagedProxyLease(v *ManagedProxyLease) *AccountUpdate {
+	return _u.SetManagedProxyLeaseID(v.ID)
+}
+
 // Mutation returns the AccountMutation object of the builder.
 func (_u *AccountUpdate) Mutation() *AccountMutation {
 	return _u.mutation
@@ -711,6 +745,12 @@ func (_u *AccountUpdate) RemoveUsageLogs(v ...*UsageLog) *AccountUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveUsageLogIDs(ids...)
+}
+
+// ClearManagedProxyLease clears the "managed_proxy_lease" edge to the ManagedProxyLease entity.
+func (_u *AccountUpdate) ClearManagedProxyLease() *AccountUpdate {
+	_u.mutation.ClearManagedProxyLease()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -894,6 +934,9 @@ func (_u *AccountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Schedulable(); ok {
 		_spec.SetField(account.FieldSchedulable, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.ManagedProxyReady(); ok {
+		_spec.SetField(account.FieldManagedProxyReady, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.RateLimitedAt(); ok {
 		_spec.SetField(account.FieldRateLimitedAt, field.TypeTime, value)
@@ -1144,6 +1187,35 @@ func (_u *AccountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(usagelog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ManagedProxyLeaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   account.ManagedProxyLeaseTable,
+			Columns: []string{account.ManagedProxyLeaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ManagedProxyLeaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   account.ManagedProxyLeaseTable,
+			Columns: []string{account.ManagedProxyLeaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -1510,6 +1582,20 @@ func (_u *AccountUpdateOne) SetNillableSchedulable(v *bool) *AccountUpdateOne {
 	return _u
 }
 
+// SetManagedProxyReady sets the "managed_proxy_ready" field.
+func (_u *AccountUpdateOne) SetManagedProxyReady(v bool) *AccountUpdateOne {
+	_u.mutation.SetManagedProxyReady(v)
+	return _u
+}
+
+// SetNillableManagedProxyReady sets the "managed_proxy_ready" field if the given value is not nil.
+func (_u *AccountUpdateOne) SetNillableManagedProxyReady(v *bool) *AccountUpdateOne {
+	if v != nil {
+		_u.SetManagedProxyReady(*v)
+	}
+	return _u
+}
+
 // SetRateLimitedAt sets the "rate_limited_at" field.
 func (_u *AccountUpdateOne) SetRateLimitedAt(v time.Time) *AccountUpdateOne {
 	_u.mutation.SetRateLimitedAt(v)
@@ -1773,6 +1859,25 @@ func (_u *AccountUpdateOne) AddUsageLogs(v ...*UsageLog) *AccountUpdateOne {
 	return _u.AddUsageLogIDs(ids...)
 }
 
+// SetManagedProxyLeaseID sets the "managed_proxy_lease" edge to the ManagedProxyLease entity by ID.
+func (_u *AccountUpdateOne) SetManagedProxyLeaseID(id int64) *AccountUpdateOne {
+	_u.mutation.SetManagedProxyLeaseID(id)
+	return _u
+}
+
+// SetNillableManagedProxyLeaseID sets the "managed_proxy_lease" edge to the ManagedProxyLease entity by ID if the given value is not nil.
+func (_u *AccountUpdateOne) SetNillableManagedProxyLeaseID(id *int64) *AccountUpdateOne {
+	if id != nil {
+		_u = _u.SetManagedProxyLeaseID(*id)
+	}
+	return _u
+}
+
+// SetManagedProxyLease sets the "managed_proxy_lease" edge to the ManagedProxyLease entity.
+func (_u *AccountUpdateOne) SetManagedProxyLease(v *ManagedProxyLease) *AccountUpdateOne {
+	return _u.SetManagedProxyLeaseID(v.ID)
+}
+
 // Mutation returns the AccountMutation object of the builder.
 func (_u *AccountUpdateOne) Mutation() *AccountMutation {
 	return _u.mutation
@@ -1851,6 +1956,12 @@ func (_u *AccountUpdateOne) RemoveUsageLogs(v ...*UsageLog) *AccountUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveUsageLogIDs(ids...)
+}
+
+// ClearManagedProxyLease clears the "managed_proxy_lease" edge to the ManagedProxyLease entity.
+func (_u *AccountUpdateOne) ClearManagedProxyLease() *AccountUpdateOne {
+	_u.mutation.ClearManagedProxyLease()
+	return _u
 }
 
 // Where appends a list predicates to the AccountUpdate builder.
@@ -2064,6 +2175,9 @@ func (_u *AccountUpdateOne) sqlSave(ctx context.Context) (_node *Account, err er
 	}
 	if value, ok := _u.mutation.Schedulable(); ok {
 		_spec.SetField(account.FieldSchedulable, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.ManagedProxyReady(); ok {
+		_spec.SetField(account.FieldManagedProxyReady, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.RateLimitedAt(); ok {
 		_spec.SetField(account.FieldRateLimitedAt, field.TypeTime, value)
@@ -2314,6 +2428,35 @@ func (_u *AccountUpdateOne) sqlSave(ctx context.Context) (_node *Account, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(usagelog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ManagedProxyLeaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   account.ManagedProxyLeaseTable,
+			Columns: []string{account.ManagedProxyLeaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ManagedProxyLeaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   account.ManagedProxyLeaseTable,
+			Columns: []string{account.ManagedProxyLeaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(managedproxylease.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

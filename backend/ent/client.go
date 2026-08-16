@@ -25,6 +25,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/batchimageevent"
 	"github.com/Wei-Shaw/sub2api/ent/batchimageitem"
 	"github.com/Wei-Shaw/sub2api/ent/batchimagejob"
+	"github.com/Wei-Shaw/sub2api/ent/catproxyproviderconfig"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitor"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitordailyrollup"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorhistory"
@@ -34,6 +35,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
+	"github.com/Wei-Shaw/sub2api/ent/managedproxylease"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -83,6 +85,8 @@ type Client struct {
 	BatchImageItem *BatchImageItemClient
 	// BatchImageJob is the client for interacting with the BatchImageJob builders.
 	BatchImageJob *BatchImageJobClient
+	// CatProxyProviderConfig is the client for interacting with the CatProxyProviderConfig builders.
+	CatProxyProviderConfig *CatProxyProviderConfigClient
 	// ChannelMonitor is the client for interacting with the ChannelMonitor builders.
 	ChannelMonitor *ChannelMonitorClient
 	// ChannelMonitorDailyRollup is the client for interacting with the ChannelMonitorDailyRollup builders.
@@ -101,6 +105,8 @@ type Client struct {
 	IdempotencyRecord *IdempotencyRecordClient
 	// IdentityAdoptionDecision is the client for interacting with the IdentityAdoptionDecision builders.
 	IdentityAdoptionDecision *IdentityAdoptionDecisionClient
+	// ManagedProxyLease is the client for interacting with the ManagedProxyLease builders.
+	ManagedProxyLease *ManagedProxyLeaseClient
 	// PaymentAuditLog is the client for interacting with the PaymentAuditLog builders.
 	PaymentAuditLog *PaymentAuditLogClient
 	// PaymentOrder is the client for interacting with the PaymentOrder builders.
@@ -162,6 +168,7 @@ func (c *Client) init() {
 	c.BatchImageEvent = NewBatchImageEventClient(c.config)
 	c.BatchImageItem = NewBatchImageItemClient(c.config)
 	c.BatchImageJob = NewBatchImageJobClient(c.config)
+	c.CatProxyProviderConfig = NewCatProxyProviderConfigClient(c.config)
 	c.ChannelMonitor = NewChannelMonitorClient(c.config)
 	c.ChannelMonitorDailyRollup = NewChannelMonitorDailyRollupClient(c.config)
 	c.ChannelMonitorHistory = NewChannelMonitorHistoryClient(c.config)
@@ -171,6 +178,7 @@ func (c *Client) init() {
 	c.Group = NewGroupClient(c.config)
 	c.IdempotencyRecord = NewIdempotencyRecordClient(c.config)
 	c.IdentityAdoptionDecision = NewIdentityAdoptionDecisionClient(c.config)
+	c.ManagedProxyLease = NewManagedProxyLeaseClient(c.config)
 	c.PaymentAuditLog = NewPaymentAuditLogClient(c.config)
 	c.PaymentOrder = NewPaymentOrderClient(c.config)
 	c.PaymentProviderInstance = NewPaymentProviderInstanceClient(c.config)
@@ -293,6 +301,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BatchImageEvent:               NewBatchImageEventClient(cfg),
 		BatchImageItem:                NewBatchImageItemClient(cfg),
 		BatchImageJob:                 NewBatchImageJobClient(cfg),
+		CatProxyProviderConfig:        NewCatProxyProviderConfigClient(cfg),
 		ChannelMonitor:                NewChannelMonitorClient(cfg),
 		ChannelMonitorDailyRollup:     NewChannelMonitorDailyRollupClient(cfg),
 		ChannelMonitorHistory:         NewChannelMonitorHistoryClient(cfg),
@@ -302,6 +311,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Group:                         NewGroupClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
+		ManagedProxyLease:             NewManagedProxyLeaseClient(cfg),
 		PaymentAuditLog:               NewPaymentAuditLogClient(cfg),
 		PaymentOrder:                  NewPaymentOrderClient(cfg),
 		PaymentProviderInstance:       NewPaymentProviderInstanceClient(cfg),
@@ -351,6 +361,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BatchImageEvent:               NewBatchImageEventClient(cfg),
 		BatchImageItem:                NewBatchImageItemClient(cfg),
 		BatchImageJob:                 NewBatchImageJobClient(cfg),
+		CatProxyProviderConfig:        NewCatProxyProviderConfigClient(cfg),
 		ChannelMonitor:                NewChannelMonitorClient(cfg),
 		ChannelMonitorDailyRollup:     NewChannelMonitorDailyRollupClient(cfg),
 		ChannelMonitorHistory:         NewChannelMonitorHistoryClient(cfg),
@@ -360,6 +371,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Group:                         NewGroupClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
+		ManagedProxyLease:             NewManagedProxyLeaseClient(cfg),
 		PaymentAuditLog:               NewPaymentAuditLogClient(cfg),
 		PaymentOrder:                  NewPaymentOrderClient(cfg),
 		PaymentProviderInstance:       NewPaymentProviderInstanceClient(cfg),
@@ -411,15 +423,16 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.APIKey, c.Account, c.AccountGroup, c.Announcement, c.AnnouncementRead,
 		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
-		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
-		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate,
-		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
-		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
-		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
-		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.BatchImageJob, c.CatProxyProviderConfig, c.ChannelMonitor,
+		c.ChannelMonitorDailyRollup, c.ChannelMonitorHistory,
+		c.ChannelMonitorRequestTemplate, c.CompositeModelRoute, c.ErrorPassthroughRule,
+		c.Group, c.IdempotencyRecord, c.IdentityAdoptionDecision, c.ManagedProxyLease,
+		c.PaymentAuditLog, c.PaymentOrder, c.PaymentProviderInstance,
+		c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage, c.Proxy, c.RedeemCode,
+		c.SecuritySecret, c.Setting, c.SubscriptionPlan, c.TLSFingerprintProfile,
+		c.UsageCleanupTask, c.UsageLog, c.User, c.UserAllowedGroup,
+		c.UserAttributeDefinition, c.UserAttributeValue, c.UserPlatformQuota,
+		c.UserSubscription,
 	} {
 		n.Use(hooks...)
 	}
@@ -431,15 +444,16 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.APIKey, c.Account, c.AccountGroup, c.Announcement, c.AnnouncementRead,
 		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
-		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
-		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate,
-		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
-		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
-		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
-		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.BatchImageJob, c.CatProxyProviderConfig, c.ChannelMonitor,
+		c.ChannelMonitorDailyRollup, c.ChannelMonitorHistory,
+		c.ChannelMonitorRequestTemplate, c.CompositeModelRoute, c.ErrorPassthroughRule,
+		c.Group, c.IdempotencyRecord, c.IdentityAdoptionDecision, c.ManagedProxyLease,
+		c.PaymentAuditLog, c.PaymentOrder, c.PaymentProviderInstance,
+		c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage, c.Proxy, c.RedeemCode,
+		c.SecuritySecret, c.Setting, c.SubscriptionPlan, c.TLSFingerprintProfile,
+		c.UsageCleanupTask, c.UsageLog, c.User, c.UserAllowedGroup,
+		c.UserAttributeDefinition, c.UserAttributeValue, c.UserPlatformQuota,
+		c.UserSubscription,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -468,6 +482,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BatchImageItem.mutate(ctx, m)
 	case *BatchImageJobMutation:
 		return c.BatchImageJob.mutate(ctx, m)
+	case *CatProxyProviderConfigMutation:
+		return c.CatProxyProviderConfig.mutate(ctx, m)
 	case *ChannelMonitorMutation:
 		return c.ChannelMonitor.mutate(ctx, m)
 	case *ChannelMonitorDailyRollupMutation:
@@ -486,6 +502,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.IdempotencyRecord.mutate(ctx, m)
 	case *IdentityAdoptionDecisionMutation:
 		return c.IdentityAdoptionDecision.mutate(ctx, m)
+	case *ManagedProxyLeaseMutation:
+		return c.ManagedProxyLease.mutate(ctx, m)
 	case *PaymentAuditLogMutation:
 		return c.PaymentAuditLog.mutate(ctx, m)
 	case *PaymentOrderMutation:
@@ -895,6 +913,22 @@ func (c *AccountClient) QueryUsageLogs(_m *Account) *UsageLogQuery {
 			sqlgraph.From(account.Table, account.FieldID, id),
 			sqlgraph.To(usagelog.Table, usagelog.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, account.UsageLogsTable, account.UsageLogsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryManagedProxyLease queries the managed_proxy_lease edge of a Account.
+func (c *AccountClient) QueryManagedProxyLease(_m *Account) *ManagedProxyLeaseQuery {
+	query := (&ManagedProxyLeaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(account.Table, account.FieldID, id),
+			sqlgraph.To(managedproxylease.Table, managedproxylease.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, account.ManagedProxyLeaseTable, account.ManagedProxyLeaseColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -2101,6 +2135,155 @@ func (c *BatchImageJobClient) mutate(ctx context.Context, m *BatchImageJobMutati
 		return (&BatchImageJobDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown BatchImageJob mutation op: %q", m.Op())
+	}
+}
+
+// CatProxyProviderConfigClient is a client for the CatProxyProviderConfig schema.
+type CatProxyProviderConfigClient struct {
+	config
+}
+
+// NewCatProxyProviderConfigClient returns a client for the CatProxyProviderConfig from the given config.
+func NewCatProxyProviderConfigClient(c config) *CatProxyProviderConfigClient {
+	return &CatProxyProviderConfigClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `catproxyproviderconfig.Hooks(f(g(h())))`.
+func (c *CatProxyProviderConfigClient) Use(hooks ...Hook) {
+	c.hooks.CatProxyProviderConfig = append(c.hooks.CatProxyProviderConfig, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `catproxyproviderconfig.Intercept(f(g(h())))`.
+func (c *CatProxyProviderConfigClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CatProxyProviderConfig = append(c.inters.CatProxyProviderConfig, interceptors...)
+}
+
+// Create returns a builder for creating a CatProxyProviderConfig entity.
+func (c *CatProxyProviderConfigClient) Create() *CatProxyProviderConfigCreate {
+	mutation := newCatProxyProviderConfigMutation(c.config, OpCreate)
+	return &CatProxyProviderConfigCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CatProxyProviderConfig entities.
+func (c *CatProxyProviderConfigClient) CreateBulk(builders ...*CatProxyProviderConfigCreate) *CatProxyProviderConfigCreateBulk {
+	return &CatProxyProviderConfigCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CatProxyProviderConfigClient) MapCreateBulk(slice any, setFunc func(*CatProxyProviderConfigCreate, int)) *CatProxyProviderConfigCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CatProxyProviderConfigCreateBulk{err: fmt.Errorf("calling to CatProxyProviderConfigClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CatProxyProviderConfigCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CatProxyProviderConfigCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CatProxyProviderConfig.
+func (c *CatProxyProviderConfigClient) Update() *CatProxyProviderConfigUpdate {
+	mutation := newCatProxyProviderConfigMutation(c.config, OpUpdate)
+	return &CatProxyProviderConfigUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CatProxyProviderConfigClient) UpdateOne(_m *CatProxyProviderConfig) *CatProxyProviderConfigUpdateOne {
+	mutation := newCatProxyProviderConfigMutation(c.config, OpUpdateOne, withCatProxyProviderConfig(_m))
+	return &CatProxyProviderConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CatProxyProviderConfigClient) UpdateOneID(id int64) *CatProxyProviderConfigUpdateOne {
+	mutation := newCatProxyProviderConfigMutation(c.config, OpUpdateOne, withCatProxyProviderConfigID(id))
+	return &CatProxyProviderConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CatProxyProviderConfig.
+func (c *CatProxyProviderConfigClient) Delete() *CatProxyProviderConfigDelete {
+	mutation := newCatProxyProviderConfigMutation(c.config, OpDelete)
+	return &CatProxyProviderConfigDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CatProxyProviderConfigClient) DeleteOne(_m *CatProxyProviderConfig) *CatProxyProviderConfigDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CatProxyProviderConfigClient) DeleteOneID(id int64) *CatProxyProviderConfigDeleteOne {
+	builder := c.Delete().Where(catproxyproviderconfig.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CatProxyProviderConfigDeleteOne{builder}
+}
+
+// Query returns a query builder for CatProxyProviderConfig.
+func (c *CatProxyProviderConfigClient) Query() *CatProxyProviderConfigQuery {
+	return &CatProxyProviderConfigQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCatProxyProviderConfig},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CatProxyProviderConfig entity by its id.
+func (c *CatProxyProviderConfigClient) Get(ctx context.Context, id int64) (*CatProxyProviderConfig, error) {
+	return c.Query().Where(catproxyproviderconfig.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CatProxyProviderConfigClient) GetX(ctx context.Context, id int64) *CatProxyProviderConfig {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryLeases queries the leases edge of a CatProxyProviderConfig.
+func (c *CatProxyProviderConfigClient) QueryLeases(_m *CatProxyProviderConfig) *ManagedProxyLeaseQuery {
+	query := (&ManagedProxyLeaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(catproxyproviderconfig.Table, catproxyproviderconfig.FieldID, id),
+			sqlgraph.To(managedproxylease.Table, managedproxylease.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, catproxyproviderconfig.LeasesTable, catproxyproviderconfig.LeasesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CatProxyProviderConfigClient) Hooks() []Hook {
+	return c.hooks.CatProxyProviderConfig
+}
+
+// Interceptors returns the client interceptors.
+func (c *CatProxyProviderConfigClient) Interceptors() []Interceptor {
+	return c.inters.CatProxyProviderConfig
+}
+
+func (c *CatProxyProviderConfigClient) mutate(ctx context.Context, m *CatProxyProviderConfigMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CatProxyProviderConfigCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CatProxyProviderConfigUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CatProxyProviderConfigUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CatProxyProviderConfigDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown CatProxyProviderConfig mutation op: %q", m.Op())
 	}
 }
 
@@ -3577,6 +3760,187 @@ func (c *IdentityAdoptionDecisionClient) mutate(ctx context.Context, m *Identity
 	}
 }
 
+// ManagedProxyLeaseClient is a client for the ManagedProxyLease schema.
+type ManagedProxyLeaseClient struct {
+	config
+}
+
+// NewManagedProxyLeaseClient returns a client for the ManagedProxyLease from the given config.
+func NewManagedProxyLeaseClient(c config) *ManagedProxyLeaseClient {
+	return &ManagedProxyLeaseClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `managedproxylease.Hooks(f(g(h())))`.
+func (c *ManagedProxyLeaseClient) Use(hooks ...Hook) {
+	c.hooks.ManagedProxyLease = append(c.hooks.ManagedProxyLease, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `managedproxylease.Intercept(f(g(h())))`.
+func (c *ManagedProxyLeaseClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ManagedProxyLease = append(c.inters.ManagedProxyLease, interceptors...)
+}
+
+// Create returns a builder for creating a ManagedProxyLease entity.
+func (c *ManagedProxyLeaseClient) Create() *ManagedProxyLeaseCreate {
+	mutation := newManagedProxyLeaseMutation(c.config, OpCreate)
+	return &ManagedProxyLeaseCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ManagedProxyLease entities.
+func (c *ManagedProxyLeaseClient) CreateBulk(builders ...*ManagedProxyLeaseCreate) *ManagedProxyLeaseCreateBulk {
+	return &ManagedProxyLeaseCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ManagedProxyLeaseClient) MapCreateBulk(slice any, setFunc func(*ManagedProxyLeaseCreate, int)) *ManagedProxyLeaseCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ManagedProxyLeaseCreateBulk{err: fmt.Errorf("calling to ManagedProxyLeaseClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ManagedProxyLeaseCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ManagedProxyLeaseCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ManagedProxyLease.
+func (c *ManagedProxyLeaseClient) Update() *ManagedProxyLeaseUpdate {
+	mutation := newManagedProxyLeaseMutation(c.config, OpUpdate)
+	return &ManagedProxyLeaseUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ManagedProxyLeaseClient) UpdateOne(_m *ManagedProxyLease) *ManagedProxyLeaseUpdateOne {
+	mutation := newManagedProxyLeaseMutation(c.config, OpUpdateOne, withManagedProxyLease(_m))
+	return &ManagedProxyLeaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ManagedProxyLeaseClient) UpdateOneID(id int64) *ManagedProxyLeaseUpdateOne {
+	mutation := newManagedProxyLeaseMutation(c.config, OpUpdateOne, withManagedProxyLeaseID(id))
+	return &ManagedProxyLeaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ManagedProxyLease.
+func (c *ManagedProxyLeaseClient) Delete() *ManagedProxyLeaseDelete {
+	mutation := newManagedProxyLeaseMutation(c.config, OpDelete)
+	return &ManagedProxyLeaseDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ManagedProxyLeaseClient) DeleteOne(_m *ManagedProxyLease) *ManagedProxyLeaseDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ManagedProxyLeaseClient) DeleteOneID(id int64) *ManagedProxyLeaseDeleteOne {
+	builder := c.Delete().Where(managedproxylease.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ManagedProxyLeaseDeleteOne{builder}
+}
+
+// Query returns a query builder for ManagedProxyLease.
+func (c *ManagedProxyLeaseClient) Query() *ManagedProxyLeaseQuery {
+	return &ManagedProxyLeaseQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeManagedProxyLease},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ManagedProxyLease entity by its id.
+func (c *ManagedProxyLeaseClient) Get(ctx context.Context, id int64) (*ManagedProxyLease, error) {
+	return c.Query().Where(managedproxylease.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ManagedProxyLeaseClient) GetX(ctx context.Context, id int64) *ManagedProxyLease {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAccount queries the account edge of a ManagedProxyLease.
+func (c *ManagedProxyLeaseClient) QueryAccount(_m *ManagedProxyLease) *AccountQuery {
+	query := (&AccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(managedproxylease.Table, managedproxylease.FieldID, id),
+			sqlgraph.To(account.Table, account.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, managedproxylease.AccountTable, managedproxylease.AccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryProxy queries the proxy edge of a ManagedProxyLease.
+func (c *ManagedProxyLeaseClient) QueryProxy(_m *ManagedProxyLease) *ProxyQuery {
+	query := (&ProxyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(managedproxylease.Table, managedproxylease.FieldID, id),
+			sqlgraph.To(proxy.Table, proxy.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, managedproxylease.ProxyTable, managedproxylease.ProxyColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryProviderConfig queries the provider_config edge of a ManagedProxyLease.
+func (c *ManagedProxyLeaseClient) QueryProviderConfig(_m *ManagedProxyLease) *CatProxyProviderConfigQuery {
+	query := (&CatProxyProviderConfigClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(managedproxylease.Table, managedproxylease.FieldID, id),
+			sqlgraph.To(catproxyproviderconfig.Table, catproxyproviderconfig.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, managedproxylease.ProviderConfigTable, managedproxylease.ProviderConfigColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ManagedProxyLeaseClient) Hooks() []Hook {
+	return c.hooks.ManagedProxyLease
+}
+
+// Interceptors returns the client interceptors.
+func (c *ManagedProxyLeaseClient) Interceptors() []Interceptor {
+	return c.inters.ManagedProxyLease
+}
+
+func (c *ManagedProxyLeaseClient) mutate(ctx context.Context, m *ManagedProxyLeaseMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ManagedProxyLeaseCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ManagedProxyLeaseUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ManagedProxyLeaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ManagedProxyLeaseDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ManagedProxyLease mutation op: %q", m.Op())
+	}
+}
+
 // PaymentAuditLogClient is a client for the PaymentAuditLog schema.
 type PaymentAuditLogClient struct {
 	config
@@ -4604,6 +4968,22 @@ func (c *ProxyClient) QueryBackupProxy(_m *Proxy) *ProxyQuery {
 			sqlgraph.From(proxy.Table, proxy.FieldID, id),
 			sqlgraph.To(proxy.Table, proxy.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, proxy.BackupProxyTable, proxy.BackupProxyColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryManagedProxyLeases queries the managed_proxy_leases edge of a Proxy.
+func (c *ProxyClient) QueryManagedProxyLeases(_m *Proxy) *ManagedProxyLeaseQuery {
+	query := (&ManagedProxyLeaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(proxy.Table, proxy.FieldID, id),
+			sqlgraph.To(managedproxylease.Table, managedproxylease.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, proxy.ManagedProxyLeasesTable, proxy.ManagedProxyLeasesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -6827,26 +7207,26 @@ type (
 	hooks struct {
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
 		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
-		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
-		ChannelMonitorRequestTemplate, CompositeModelRoute, ErrorPassthroughRule,
-		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
-		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
-		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
-		TLSFingerprintProfile, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
-		UserAttributeDefinition, UserAttributeValue, UserPlatformQuota,
-		UserSubscription []ent.Hook
+		CatProxyProviderConfig, ChannelMonitor, ChannelMonitorDailyRollup,
+		ChannelMonitorHistory, ChannelMonitorRequestTemplate, CompositeModelRoute,
+		ErrorPassthroughRule, Group, IdempotencyRecord, IdentityAdoptionDecision,
+		ManagedProxyLease, PaymentAuditLog, PaymentOrder, PaymentProviderInstance,
+		PendingAuthSession, PromoCode, PromoCodeUsage, Proxy, RedeemCode,
+		SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
+		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
+		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Hook
 	}
 	inters struct {
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
 		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
-		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
-		ChannelMonitorRequestTemplate, CompositeModelRoute, ErrorPassthroughRule,
-		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
-		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
-		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
-		TLSFingerprintProfile, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
-		UserAttributeDefinition, UserAttributeValue, UserPlatformQuota,
-		UserSubscription []ent.Interceptor
+		CatProxyProviderConfig, ChannelMonitor, ChannelMonitorDailyRollup,
+		ChannelMonitorHistory, ChannelMonitorRequestTemplate, CompositeModelRoute,
+		ErrorPassthroughRule, Group, IdempotencyRecord, IdentityAdoptionDecision,
+		ManagedProxyLease, PaymentAuditLog, PaymentOrder, PaymentProviderInstance,
+		PendingAuthSession, PromoCode, PromoCodeUsage, Proxy, RedeemCode,
+		SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
+		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
+		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Interceptor
 	}
 )
 
