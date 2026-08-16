@@ -163,7 +163,7 @@ func TestGenerateCatProxiesSessionID_IsOpaqueRandom(t *testing.T) {
 	require.NoError(t, err)
 	second, err := GenerateCatProxiesSessionID()
 	require.NoError(t, err)
-	require.Regexp(t, regexp.MustCompile(`^[0-9a-f]{32}$`), first)
+	require.Regexp(t, regexp.MustCompile(`^[0-9a-f]{24}$`), first)
 	require.NotEqual(t, first, second)
 }
 

@@ -549,7 +549,9 @@ func NormalizeCatProxiesBaseUsername(base string) string {
 }
 
 func GenerateCatProxiesSessionID() (string, error) {
-	var random [16]byte
+	// CatProxies rejects -session-* longer than 24 characters with HTTP 403
+	// "Invalid session". 12 bytes of hex stays inside that limit.
+	var random [12]byte
 	if _, err := rand.Read(random[:]); err != nil {
 		return "", fmt.Errorf("generate catproxies session: %w", err)
 	}
