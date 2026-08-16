@@ -235,6 +235,25 @@ func openAIProxyStreamCircuitProxyID(account *Account) (int64, bool) {
 	return *account.ProxyID, true
 }
 
+type openAIHTTP2StreamFailureRecorder interface {
+	RecordOpenAIHTTP2StreamFailure(proxyURL string, err error)
+}
+
+func (s *OpenAIGatewayService) recordOpenAIProxiedHTTP2StreamFailure(account *Account, err error) {
+	if s == nil || err == nil || account == nil {
+		return
+	}
+	recorder, ok := s.httpUpstream.(openAIHTTP2StreamFailureRecorder)
+	if !ok {
+		return
+	}
+	proxyURL := resolveAccountProxyURL(account)
+	if proxyURL == "" {
+		return
+	}
+	recorder.RecordOpenAIHTTP2StreamFailure(proxyURL, err)
+}
+
 func (s *OpenAIGatewayService) recordOpenAIProxyStreamDisconnect(account *Account, streamErr error, upstreamRequestID string) {
 	proxyID, ok := openAIProxyStreamCircuitProxyID(account)
 	if !ok || streamErr == nil || errors.Is(streamErr, context.Canceled) || errors.Is(streamErr, context.DeadlineExceeded) {

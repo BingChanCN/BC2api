@@ -362,6 +362,7 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 			}
 		} else if !clientDisconnected {
 			s.notifyManagedProxyTransportFailure(ctx, account, io.ErrUnexpectedEOF)
+			s.recordOpenAIProxiedHTTP2StreamFailure(account, io.ErrUnexpectedEOF)
 		}
 		if !sawTerminalEvent && !openAIStreamClientOutputStarted(c, clientOutputStarted) && !eventShouldFlush {
 			return resultWithUsage(), s.newOpenAIStreamFailoverError(
@@ -424,6 +425,7 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 			return resultWithUsage(), fmt.Errorf("stream usage incomplete: %w", scanErr), true
 		}
 		s.notifyManagedProxyTransportFailure(ctx, account, scanErr)
+		s.recordOpenAIProxiedHTTP2StreamFailure(account, scanErr)
 		if errors.Is(scanErr, bufio.ErrTooLong) {
 			logger.LegacyPrintf("service.openai_gateway", "SSE line too long: account=%d max_size=%d error=%v", account.ID, maxLineSize, scanErr)
 			sendErrorEvent("response_too_large")

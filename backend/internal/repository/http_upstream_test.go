@@ -706,6 +706,29 @@ func (s *HTTPUpstreamSuite) TestOpenAIHTTP2TimeoutDoesNotActivateProxyFallback()
 	require.False(s.T(), svc.isOpenAIHTTP2FallbackActive(proxyURL), "header timeout should not be treated as H2 compatibility failure")
 }
 
+func (s *HTTPUpstreamSuite) TestOpenAIHTTP2StreamDisconnectActivatesSharedHostFallback() {
+	s.cfg.Gateway = config.GatewayConfig{
+		OpenAIHTTP2: config.GatewayOpenAIHTTP2Config{
+			Enabled:                   true,
+			AllowProxyFallbackToHTTP1: true,
+			FallbackErrorThreshold:    2,
+			FallbackWindowSeconds:     60,
+			FallbackTTLSeconds:        600,
+		},
+	}
+	svc := s.newService()
+	first := "http://sess-one:secret@resi-sg.example:10000"
+	second := "http://sess-two:secret@resi-sg.example:10000"
+	svc.RecordOpenAIHTTP2StreamFailure(first, io.ErrUnexpectedEOF)
+	require.False(s.T(), svc.isOpenAIHTTP2FallbackActive(second), "one mid-stream EOF must not trip fallback")
+	svc.RecordOpenAIHTTP2StreamFailure(second, errors.New("http2: client connection lost"))
+	require.True(s.T(), svc.isOpenAIHTTP2FallbackActive(first), "same gateway host must share H2 fallback after two stream disconnects")
+
+	entry, err := svc.getClientEntry(second, 1, 1, service.HTTPUpstreamProfileOpenAI, false, false)
+	require.NoError(s.T(), err)
+	require.Equal(s.T(), upstreamProtocolModeOpenAIH1Fallback, entry.protocolMode)
+}
+
 func (s *HTTPUpstreamSuite) TestOpenAIHTTP2ProxyCompatibilityErrorActivatesFallback() {
 	s.cfg.Gateway = config.GatewayConfig{
 		OpenAIHTTP2: config.GatewayOpenAIHTTP2Config{

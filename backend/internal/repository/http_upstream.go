@@ -222,7 +222,8 @@ func (s *httpUpstreamService) Do(req *http.Request, proxyURL string, accountID i
 		atomic.StoreInt64(&entry.lastUsed, time.Now().UnixNano())
 		return nil, err
 	}
-	s.recordOpenAIHTTP2Success(profile, entry.protocolMode, entry.proxyKey)
+	// 只拿到响应头不算 HTTP/2 成功：住宅代理上的 SSE 经常在读 body 时才 EOF。
+	// 成功清窗口改由流正常结束触发，避免下一次建连把头把失败计数清掉。
 
 	// 如果上游返回了压缩内容，解压后再交给业务层
 	decompressResponseBody(resp)
@@ -1003,8 +1004,21 @@ func (s *httpUpstreamService) resolveProtocolMode(profile service.HTTPUpstreamPr
 	return upstreamProtocolModeOpenAIH2
 }
 
+func openAIHTTP2FallbackKey(proxyKey string) string {
+	if !isHTTPProxyKey(proxyKey) {
+		return proxyKey
+	}
+	_, parsed, err := normalizeProxyURL(proxyKey)
+	if err != nil || parsed == nil {
+		return proxyKey
+	}
+	stripped := *parsed
+	stripped.User = nil
+	return stripped.String()
+}
+
 func (s *httpUpstreamService) isOpenAIHTTP2FallbackActive(proxyKey string) bool {
-	raw, ok := s.openAIHTTP2Fallbacks.Load(proxyKey)
+	raw, ok := s.openAIHTTP2Fallbacks.Load(openAIHTTP2FallbackKey(proxyKey))
 	if !ok {
 		return false
 	}
@@ -1048,6 +1062,9 @@ func isOpenAIHTTP2CompatibilityError(err error) bool {
 		"goaway",
 		"refused_stream",
 		"frame too large",
+		"client connection lost",
+		"unexpected eof",
+		"connection reset",
 	}
 	for _, marker := range markers {
 		if strings.Contains(msg, marker) {
@@ -1095,34 +1112,30 @@ func (s *httpUpstreamService) recordOpenAIHTTP2Failure(profile service.HTTPUpstr
 	if !settings.enabled || !settings.allowProxyFallbackToHTTP1 {
 		return
 	}
-	if !isHTTPProxyKey(proxyKey) || !isOpenAIHTTP2CompatibilityError(err) {
+	fallbackKey := openAIHTTP2FallbackKey(proxyKey)
+	if !isHTTPProxyKey(fallbackKey) || !isOpenAIHTTP2CompatibilityError(err) {
 		return
 	}
-	state := s.getOrCreateOpenAIHTTP2FallbackState(proxyKey)
+	state := s.getOrCreateOpenAIHTTP2FallbackState(fallbackKey)
 	activated, until := state.recordFailure(time.Now(), settings.fallbackErrorThreshold, settings.fallbackWindow, settings.fallbackTTL)
 	if activated {
 		slog.Warn("openai_http2_proxy_fallback_activated",
-			"proxy", proxyKey,
+			"proxy", fallbackKey,
 			"fallback_until", until.Format(time.RFC3339))
 	}
 }
 
-func (s *httpUpstreamService) recordOpenAIHTTP2Success(profile service.HTTPUpstreamProfile, protocolMode, proxyKey string) {
-	if profile != service.HTTPUpstreamProfileOpenAI || protocolMode != upstreamProtocolModeOpenAIH2 {
+// RecordOpenAIHTTP2StreamFailure counts a mid-stream proxy disconnect toward
+// the HTTP/2 → HTTP/1.1 fallback. Do() only sees header/connect errors.
+func (s *httpUpstreamService) RecordOpenAIHTTP2StreamFailure(proxyURL string, err error) {
+	if s == nil || err == nil {
 		return
 	}
-	if !isHTTPProxyKey(proxyKey) {
+	proxyKey, _, nerr := normalizeProxyURL(proxyURL)
+	if nerr != nil || proxyKey == "" || proxyKey == directProxyKey {
 		return
 	}
-	raw, ok := s.openAIHTTP2Fallbacks.Load(proxyKey)
-	if !ok {
-		return
-	}
-	state, ok := raw.(*openAIHTTP2FallbackState)
-	if !ok || state == nil {
-		return
-	}
-	state.resetErrorWindow()
+	s.recordOpenAIHTTP2Failure(service.HTTPUpstreamProfileOpenAI, upstreamProtocolModeOpenAIH2, proxyKey, err)
 }
 
 func (s *openAIHTTP2FallbackState) isFallbackActive(now time.Time) bool {
