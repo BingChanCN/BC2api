@@ -9,6 +9,9 @@
   const previewCount = document.getElementById('previewCount')
   const downloadBtn = document.getElementById('download')
   const copyBtn = document.getElementById('copy')
+  const output = document.getElementById('output')
+  const outputPanel = document.getElementById('outputPanel')
+  const outputHint = document.getElementById('outputHint')
 
   let sourceName = 'accounts.json'
   let source = null
@@ -55,30 +58,38 @@
   })
 
   downloadBtn.addEventListener('click', () => {
-    const result = transform()
+    const result = showResult()
     if (!result) return
     const blob = new Blob([result.text], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.download = result.name
+    link.rel = 'noopener'
+    link.style.display = 'none'
+    document.body.appendChild(link)
     link.click()
-    URL.revokeObjectURL(url)
+    window.setTimeout(() => {
+      link.remove()
+      URL.revokeObjectURL(url)
+    }, 1000)
+    outputHint.textContent = '若浏览器没有弹出下载，请在下方全选复制后另存为 .json'
   })
 
   copyBtn.addEventListener('click', async () => {
-    const result = transform()
+    const result = showResult()
     if (!result) return
     try {
       await navigator.clipboard.writeText(result.text)
       copyBtn.textContent = '已复制'
+      outputHint.textContent = '已复制到剪贴板'
       setTimeout(() => {
         copyBtn.textContent = '复制到剪贴板'
       }, 1600)
     } catch {
-      paste.value = result.text
-      paste.focus()
-      paste.select()
+      output.focus()
+      output.select()
+      outputHint.textContent = '剪贴板不可用，已选中下方文本，按 Ctrl+C 复制'
     }
   })
 
@@ -191,6 +202,18 @@
     }
   }
 
+  function showResult() {
+    const result = transform()
+    if (!result) {
+      outputPanel.hidden = true
+      output.value = ''
+      return null
+    }
+    outputPanel.hidden = false
+    output.value = result.text
+    return result
+  }
+
   function refresh() {
     const result = source ? transform() : null
     const packet = result?.packet
@@ -200,6 +223,10 @@
     previewCount.textContent = source ? `${accounts.length} 个账号` : ''
     downloadBtn.disabled = !result
     copyBtn.disabled = !result
+    if (!outputPanel.hidden) {
+      output.value = result ? result.text : ''
+      if (!result) outputPanel.hidden = true
+    }
     for (const account of accounts.slice(0, 12)) {
       const row = document.createElement('tr')
       row.innerHTML = `

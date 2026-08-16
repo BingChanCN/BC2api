@@ -30,7 +30,8 @@ const (
 	// 安全性不受影响: sandbox 无 allow-same-origin，iframe 内请求是匿名请求（不携带主站 Cookie/JWT），
 	// 只能访问插件自身的 public/** 与公开接口；登录态 API 仍需经父页面受控桥。
 	// 注: 全屏能力由 iframe 的 allow="fullscreen"（Permissions Policy）控制，不是 sandbox token。
-	pluginUIContentPolicy = "sandbox allow-scripts; default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; frame-src 'none'; child-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
+	// allow-downloads: 操作员部署的静态插件可导出本地生成的文件；无 allow-same-origin，仍是 opaque origin。
+	pluginUIContentPolicy = "sandbox allow-scripts allow-downloads; default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; frame-src 'none'; child-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
 )
 
 type Runtime struct {

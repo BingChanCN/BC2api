@@ -82,8 +82,8 @@ volumes:
 ## 安全边界
 
 1. **UI 是无权限沙箱壳**
-   - 前端用 `sandbox="allow-scripts"` iframe 加载
-   - 插件文档强制独立 CSP：`connect-src 'none'`、`sandbox allow-scripts`
+   - 前端用 `sandbox="allow-scripts allow-downloads"` iframe 加载
+   - 插件文档强制独立 CSP：`connect-src 'self'`、`sandbox allow-scripts allow-downloads`
    - 不向插件 URL 附带主站 JWT / Cookie
 
 2. **API 走主站认证桥**
