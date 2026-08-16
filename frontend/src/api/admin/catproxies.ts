@@ -126,19 +126,19 @@ const getTargeting = async (country = '', state = ''): Promise<CatProxyTargeting
   (await apiClient.get<CatProxyTargeting>('/admin/catproxies/targeting', { params: { country, state } })).data
 
 const listManaged = async (): Promise<ManagedProxyAccount[]> =>
-  (await apiClient.get<ManagedProxyAccount[]>('/admin/managed-proxies')).data
+  (await apiClient.get<ManagedProxyAccount[]>('/admin/catproxies/accounts')).data
 
 const manageAccount = async (accountId: number, payload: ManagedProxyTargetInput): Promise<ManagedProxyAccount> =>
-  (await apiClient.post<ManagedProxyAccount>(`/admin/accounts/${accountId}/managed-proxy`, payload)).data
+  (await apiClient.post<ManagedProxyAccount>(`/admin/catproxies/accounts/${accountId}`, payload)).data
 
 const rotateAccount = async (accountId: number): Promise<ManagedProxyAccount> =>
-  (await apiClient.post<ManagedProxyAccount>(`/admin/accounts/${accountId}/managed-proxy/rotate`)).data
+  (await apiClient.post<ManagedProxyAccount>(`/admin/catproxies/accounts/${accountId}/rotate`)).data
 
 const migrateAccount = async (accountId: number, providerConfigId: number): Promise<ManagedProxyAccount> =>
-  (await apiClient.post<ManagedProxyAccount>(`/admin/accounts/${accountId}/managed-proxy/migrate`, { provider_config_id: providerConfigId })).data
+  (await apiClient.post<ManagedProxyAccount>(`/admin/catproxies/accounts/${accountId}/migrate`, { provider_config_id: providerConfigId })).data
 
 const releaseAccount = async (accountId: number): Promise<void> => {
-  await apiClient.delete(`/admin/accounts/${accountId}/managed-proxy`)
+  await apiClient.delete(`/admin/catproxies/accounts/${accountId}`)
 }
 
 export const catproxiesAPI = {
