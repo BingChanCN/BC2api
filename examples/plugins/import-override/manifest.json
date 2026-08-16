@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "import-override",
+  "name": "导入覆盖",
+  "version": "1.0.0",
+  "description": "导入账号 JSON 前覆盖名称、并发、优先级、备注、代理绑定等字段。不改动凭证。",
+  "enabled": true,
+  "visibility": "admin",
+  "sort_order": 20,
+  "runtime": {
+    "type": "static",
+    "entry": "public/index.html",
+    "spa": false
+  }
+}

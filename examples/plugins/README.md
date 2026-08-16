@@ -1,5 +1,15 @@
 # Plugin examples
 
+## import-override
+
+管理员静态工具：导入账号 JSON 前覆盖名称、并发、优先级、备注、extra，或清掉静态/受管代理绑定。不改凭证，也不调用导入 API。处理完后回到账号页导入。
+
+```bash
+cp -r examples/plugins/import-override /path/to/data/plugins/
+```
+
+要求：目录名 = `manifest.id` = `import-override`，`visibility=admin`。
+
 ## reaction-grid
 
 纯静态小游戏，演示：

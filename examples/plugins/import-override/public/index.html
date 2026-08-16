@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>导入覆盖</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">账号数据包</p>
+          <h1>导入前覆盖</h1>
+        </div>
+        <p class="lede">
+          勾选要改的项，只覆盖这些字段。凭证、token、密码原样保留。处理后请回到账号页导入。
+        </p>
+      </header>
+
+      <section class="panel drop" id="drop">
+        <input id="file" type="file" accept="application/json,.json" hidden />
+        <button type="button" class="drop-target" id="pick">
+          <strong>选择 JSON</strong>
+          <span>或拖到这里 · 也支持粘贴</span>
+        </button>
+        <textarea id="paste" placeholder="也可以把 JSON 粘贴到这里" spellcheck="false"></textarea>
+      </section>
+
+      <section class="chips" id="meta" hidden></section>
+      <p class="error" id="error" hidden></p>
+
+      <section class="layout">
+        <section class="panel">
+          <h2>覆盖项</h2>
+          <p class="hint">未勾选的字段保持文件原值。</p>
+          <div class="fields">
+            <label class="row">
+              <input type="checkbox" data-key="namePrefix" />
+              <span>名称前缀</span>
+              <input type="text" data-input="namePrefix" placeholder="例如 US-" />
+            </label>
+            <label class="row">
+              <input type="checkbox" data-key="nameSuffix" />
+              <span>名称后缀</span>
+              <input type="text" data-input="nameSuffix" placeholder="例如 -pool" />
+            </label>
+            <label class="row">
+              <input type="checkbox" data-key="notes" />
+              <span>备注</span>
+              <input type="text" data-input="notes" placeholder="留空则清空备注" />
+            </label>
+            <label class="row">
+              <input type="checkbox" data-key="concurrency" />
+              <span>并发</span>
+              <input type="number" data-input="concurrency" min="1" step="1" placeholder="1" />
+            </label>
+            <label class="row">
+              <input type="checkbox" data-key="priority" />
+              <span>优先级</span>
+              <input type="number" data-input="priority" step="1" placeholder="0" />
+            </label>
+            <label class="row">
+              <input type="checkbox" data-key="rateMultiplier" />
+              <span>倍率</span>
+              <input type="number" data-input="rateMultiplier" min="0" step="0.1" placeholder="1" />
+            </label>
+            <label class="row">
+              <input type="checkbox" data-key="autoPause" />
+              <span>到期自动暂停</span>
+              <select data-input="autoPause">
+                <option value="true">开启</option>
+                <option value="false">关闭</option>
+              </select>
+            </label>
+            <label class="row">
+              <input type="checkbox" data-key="extraMerge" />
+              <span>合并 extra</span>
+              <input type="text" data-input="extraMerge" placeholder='{"team":"a"}' />
+            </label>
+            <label class="row">
+              <input type="checkbox" data-key="extraRemove" />
+              <span>删除 extra 键</span>
+              <input type="text" data-input="extraRemove" placeholder="key1,key2" />
+            </label>
+            <label class="row check-only">
+              <input type="checkbox" data-key="clearProxy" />
+              <span>清除静态代理绑定</span>
+            </label>
+            <label class="row check-only">
+              <input type="checkbox" data-key="clearManaged" />
+              <span>清除受管代理绑定</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="preview-head">
+            <h2>预览</h2>
+            <span id="previewCount" class="muted"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>名称</th>
+                  <th>平台</th>
+                  <th>并发</th>
+                  <th>优先级</th>
+                  <th>代理</th>
+                </tr>
+              </thead>
+              <tbody id="preview"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <footer class="actions">
+        <button type="button" class="primary" id="download" disabled>下载覆盖后的 JSON</button>
+        <button type="button" class="ghost" id="copy" disabled>复制到剪贴板</button>
+      </footer>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

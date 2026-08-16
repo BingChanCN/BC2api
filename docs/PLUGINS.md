@@ -206,6 +206,7 @@ plugins:
 仓库内示例：
 
 ```text
+examples/plugins/import-override/ # 管理员静态工具：导入 JSON 前覆盖字段
 examples/plugins/reaction-grid/   # 纯静态小游戏（无侧车）
 examples/plugins/phaser-demo/     # Phaser 4 静态游戏（验证游戏引擎产物接入）
 examples/plugins/coinflip/        # proxy 侧车 + 游戏账本（stake/payout 完整流）
