@@ -9,6 +9,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	_ "github.com/Wei-Shaw/sub2api/ent/runtime"
+	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/stretchr/testify/require"
 
 	"entgo.io/ent/dialect"
@@ -67,6 +68,7 @@ func TestListSchedulableAccountLoadsUsesSingleProjectionQuery(t *testing.T) {
 	for _, predicateColumn := range []string{
 		"status",
 		"schedulable",
+		"managed_proxy_ready",
 		"temp_unschedulable_until",
 		"expires_at",
 		"auto_pause_on_expired",
@@ -79,4 +81,36 @@ func TestListSchedulableAccountLoadsUsesSingleProjectionQuery(t *testing.T) {
 	_, orderClause, hasOrder := strings.Cut(normalized, " ORDER BY ")
 	require.True(t, hasOrder, "projection query must preserve schedulable account order: %s", normalized)
 	require.Contains(t, orderClause, `"priority" ASC`)
+}
+
+func TestSchedulableAccountQueryScopesCodexQuotaOverdraftToMarkedContext(t *testing.T) {
+	service.SetCodexQuotaOverdraftEnabled(true)
+	t.Cleanup(func() { service.SetCodexQuotaOverdraftEnabled(false) })
+
+	buildQuery := func(ctx context.Context) string {
+		var capturedSQL string
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(captureEntQueryMatcher{actual: &capturedSQL}))
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+		driver := entsql.OpenDB(dialect.Postgres, db)
+		client := dbent.NewClient(dbent.Driver(driver))
+		t.Cleanup(func() { _ = client.Close() })
+		repo := newAccountRepositoryWithSQL(client, db, nil)
+		mock.ExpectQuery("schedulable query").WillReturnRows(sqlmock.NewRows([]string{"id", "concurrency", "load_factor"}))
+		_, err = repo.ListSchedulableAccountLoads(ctx)
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+		return normalizeSQLWhitespace(capturedSQL)
+	}
+
+	ordinarySQL := buildQuery(context.Background())
+	require.Contains(t, ordinarySQL, `"managed_proxy_ready"`)
+	require.NotContains(t, ordinarySQL, `"temp_unschedulable_reason" LIKE`)
+
+	overdraftSQL := buildQuery(service.WithCodexQuotaOverdraftScheduling(context.Background()))
+	require.Contains(t, overdraftSQL, `"managed_proxy_ready"`)
+	require.Contains(t, overdraftSQL, `"temp_unschedulable_reason" LIKE`)
+	require.Contains(t, overdraftSQL, `"platform" =`)
+	require.Contains(t, overdraftSQL, `"type" =`)
+	require.Contains(t, overdraftSQL, `"parent_account_id" IS NULL`)
 }

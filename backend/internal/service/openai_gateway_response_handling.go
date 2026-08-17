@@ -466,6 +466,9 @@ func (s *OpenAIGatewayService) handleStreamingResponseWithReasoning(ctx context.
 			forceFlushFailedEvent := false
 			if eventType == "response.failed" {
 				failedMessage = extractOpenAISSEErrorMessage(dataBytes)
+				// HTTP 200 SSE 仍可能承载订阅额度耗尽；让已注入请求
+				// 进入与 HTTP 429 相同的透支终态处理。
+				s.handleCodexQuotaOverdraftResponseFailed(ctx, account, resp.Header, dataBytes, mappedModel)
 				// response.failed 自带上游已消耗的 usage（input token 通常已扣）；必须先解析
 				// 再打 cyber 标记，否则 mark 记到的是解析前的 0，导致流式 cyber 按 0 token 计费
 				// 而漏记真实用量。对齐 WS V2 / Chat 流式路径（均先解析 usage 再 Mark）。
@@ -1227,6 +1230,7 @@ func (s *OpenAIGatewayService) handleNonStreamingResponse(ctx context.Context, r
 		return nil, err
 	}
 	s.notifyManagedProxyTransportSuccess(ctx, account)
+	s.handleCodexQuotaOverdraftResponseFailed(ctx, account, resp.Header, body, mappedModel)
 	observer := upstreamResponseModelObserverFromContext(c)
 	if observer == nil {
 		observer = beginUpstreamResponseModelObservation(c)
